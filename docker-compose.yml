@@ -1,0 +1,38 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: actes
+    ports: ["5432:5432"]
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  api:
+    build: ./api
+    env_file: [.env]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://app:dev@db:5432/actes}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
+      SECRET_KEY: ${SECRET_KEY:-change-me}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
+    volumes:
+      - ./data/uploads:/data/uploads
+    ports: ["8000:8000"]
+    depends_on: [db]
+
+  web:
+    build: ./web
+    env_file: [.env]
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+volumes:
+  db_data:

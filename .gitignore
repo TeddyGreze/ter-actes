@@ -1,0 +1,38 @@
+# --- Global
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+
+# --- Root env files (ne JAMAIS commiter vos secrets)
+.env
+.env.*
+!.env.example
+
+# --- Docker / runtime data
+docker-data/
+db-data/
+postgres-data/
+**/uploads/
+data/
+api/data/
+
+# --- Front (Next.js) - dossier web/
+web/node_modules/
+web/.next/
+web/out/
+web/.vercel/
+web/.env
+web/.env.*
+!web/.env.example
+
+# --- Back (FastAPI) - dossier api/
+api/__pycache__/
+api/.pytest_cache/
+api/venv/
+api/.venv/
+api/*.pyc
+api/app/__pycache__/
+api/.env
+api/.env.*
+!api/.env.example
