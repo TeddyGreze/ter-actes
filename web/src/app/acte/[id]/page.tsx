@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import '../../styles/acte.css'  
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 const PDFViewer = dynamic(() => import('../../../components/PDFViewer'), { ssr: false })
@@ -18,28 +19,55 @@ type Acte = {
   created_at: string
 }
 
+const formatDate = (iso?: string) =>
+  iso ? new Intl.DateTimeFormat('fr-FR').format(new Date(iso)) : '—'
+
 export default function ActePage() {
   const params = useParams() as { id: string }
   const [acte, setActe] = useState<Acte | null>(null)
 
   useEffect(() => {
     const load = async () => {
-      const res = await fetch(`${API}/actes/${params.id}`)
+      const res = await fetch(`${API}/actes/${params.id}`, { cache: 'no-store' })
       const data = await res.json()
       setActe(data)
     }
     load()
   }, [params.id])
 
-  if (!acte) return <main style={{padding:24}}>Chargement...</main>
+  if (!acte) {
+    return (
+      <main className="acte-wrap">
+        <p>Chargement…</p>
+      </main>
+    )
+  }
+
+  const pub = acte.date_publication || acte.created_at
 
   return (
-    <main style={{padding: 24, maxWidth: 1000, margin: '0 auto'}}>
-      <Link href="/">← Retour</Link>
-      <h1>{acte.titre}</h1>
-      <p><strong>Type:</strong> {acte.type || '-'} · <strong>Service:</strong> {acte.service || '-'}</p>
-      <p>{acte.resume}</p>
-      <PDFViewer url={`${API}/actes/${acte.id}/pdf`} />
+    <main className="acte-wrap">
+      <Link href="/" className="acte-back">← Retour</Link>
+
+      <h1 className="acte-title">{acte.titre}</h1>
+
+      {/* Métadonnées */}
+      <div className="acte-meta">
+        <span className="meta-item"><strong>Type</strong> : <span className="badge">{acte.type || '—'}</span></span>
+        <span className="dot" aria-hidden>•</span>
+        <span className="meta-item"><strong>Service</strong> : <span className="badge">{acte.service || '—'}</span></span>
+        <span className="dot" aria-hidden>•</span>
+        <span className="meta-item"><strong>Publication</strong> : <span className="badge">{formatDate(pub)}</span></span>
+      </div>
+
+      {acte.resume && <p className="acte-resume">{acte.resume}</p>}
+
+      {/* Visionneuse */}
+      <div className="acte-viewer">
+        <PDFViewer url={`${API}/actes/${acte.id}/pdf`} height={900} initialScale={1.25} fitModeDefault="page" />
+      </div>
+
+      <p className="acte-hint">Astuce : Ctrl/Cmd + molette pour zoomer · molette aux bords pour changer de page.</p>
     </main>
   )
 }
