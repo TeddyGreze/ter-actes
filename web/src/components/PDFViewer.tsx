@@ -1,33 +1,34 @@
-'use client';
+'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
-import 'pdfjs-dist/web/pdf_viewer.css';
+import { useCallback, useEffect, useRef, useState } from 'react'
+import * as pdfjsLib from 'pdfjs-dist'
+import 'pdfjs-dist/web/pdf_viewer.css'
+import '../app/styles/acte.css' 
 
 // ———————————————————————————
-// Worker pdf.js (local ?url avec fallback CDN)
+// Worker pdf.js
 // ———————————————————————————
 async function ensureWorker() {
-  if (typeof window === 'undefined') return;
-  const g = (pdfjsLib as any).GlobalWorkerOptions;
-  if (g?.workerSrc) return;
+  if (typeof window === 'undefined') return
+  const g = (pdfjsLib as any).GlobalWorkerOptions
+  if (g?.workerSrc) return
 
   try {
-    const workerSrc = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default as string;
-    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc;
+    const workerSrc = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default as string
+    ;(pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc
   } catch {
-    (pdfjsLib as any).GlobalWorkerOptions.workerSrc =
-      `https://unpkg.com/pdfjs-dist@${(pdfjsLib as any).version}/build/pdf.worker.min.mjs`;
+    ;(pdfjsLib as any).GlobalWorkerOptions.workerSrc =
+      `https://unpkg.com/pdfjs-dist@${(pdfjsLib as any).version}/build/pdf.worker.min.mjs`
   }
 }
 
-type FitMode = 'page' | 'none';
+type FitMode = 'page' | 'none'
 type Props = {
-  url: string;
-  height?: number;
-  initialScale?: number;
-  fitModeDefault?: FitMode;
-};
+  url: string
+  height?: number
+  initialScale?: number
+  fitModeDefault?: FitMode
+}
 
 export default function PDFViewer({
   url,
@@ -35,230 +36,215 @@ export default function PDFViewer({
   initialScale = 1.25,
   fitModeDefault = 'page',
 }: Props) {
-  const wrapRef   = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const wrapRef   = useRef<HTMLDivElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
-  const pdfRef  = useRef<any | null>(null);
-  const taskRef = useRef<any | null>(null);
+  const pdfRef  = useRef<any | null>(null)
+  const taskRef = useRef<any | null>(null)
 
-  const pageRef       = useRef<number>(1);
-  const runRef        = useRef(0);
-  const fitRef        = useRef<FitMode>(fitModeDefault);
-  const renderingRef  = useRef(false);
-  const pendingScroll = useRef<number | null>(null);
+  const pageRef       = useRef<number>(1)
+  const runRef        = useRef(0)
+  const fitRef        = useRef<FitMode>(fitModeDefault)
+  const renderingRef  = useRef(false)
+  const pendingScroll = useRef<number | null>(null)
 
-  const [page, setPage]     = useState(1);
-  const [numPages, setNum]  = useState(1);
-  const [scale, setScale]   = useState(initialScale);
-  const [fitMode, setFit]   = useState<FitMode>(fitModeDefault);
+  const [page, setPage]     = useState(1)
+  const [numPages, setNum]  = useState(1)
+  const [scale, setScale]   = useState(initialScale)
+  const [fitMode, setFit]   = useState<FitMode>(fitModeDefault)
 
-  const cancelRender = () => { try { taskRef.current?.cancel(); } catch {} taskRef.current = null; };
-  const destroyPdf  = () => { try { pdfRef.current?.destroy(); } catch {} pdfRef.current = null; };
+  const cancelRender = () => { try { taskRef.current?.cancel() } catch {} taskRef.current = null }
+  const destroyPdf  = () => { try { pdfRef.current?.destroy() } catch {} pdfRef.current = null }
 
   const renderPage = useCallback(async () => {
-    const pdf = pdfRef.current, canvas = canvasRef.current, wrap = wrapRef.current;
-    if (!pdf || !canvas || !wrap) return;
-    cancelRender();
-    renderingRef.current = true;
+    const pdf = pdfRef.current, canvas = canvasRef.current, wrap = wrapRef.current
+    if (!pdf || !canvas || !wrap) return
+    cancelRender()
+    renderingRef.current = true
 
-    const p  = await pdf.getPage(pageRef.current);
-    const vp = p.getViewport({ scale });
+    const p  = await pdf.getPage(pageRef.current)
+    const vp = p.getViewport({ scale })
 
-    canvas.width  = Math.ceil(vp.width);
-    canvas.height = Math.ceil(vp.height);
-    const ctx = canvas.getContext('2d')!;
-    taskRef.current = p.render({ canvasContext: ctx, viewport: vp });
+    canvas.width  = Math.ceil(vp.width)
+    canvas.height = Math.ceil(vp.height)
+    const ctx = canvas.getContext('2d')!
+    taskRef.current = p.render({ canvasContext: ctx, viewport: vp })
 
-    try { await taskRef.current.promise; } catch {}
-    taskRef.current = null;
-    renderingRef.current = false;
+    try { await taskRef.current.promise } catch {}
+    taskRef.current = null
+    renderingRef.current = false
 
     if (pendingScroll.current !== null) {
       wrap.scrollTop = pendingScroll.current === Number.MAX_SAFE_INTEGER
         ? wrap.scrollHeight
-        : pendingScroll.current;
-      pendingScroll.current = null;
+        : pendingScroll.current
+      pendingScroll.current = null
     }
-  }, [scale]);
+  }, [scale])
 
   const fitPage = useCallback(async () => {
-    if (!pdfRef.current || !wrapRef.current) return;
-    const p = await pdfRef.current.getPage(pageRef.current);
-    const vp1 = p.getViewport({ scale: 1 });
-    const w = wrapRef.current.clientWidth;
-    const h = wrapRef.current.clientHeight;
-    const s = Math.max(0.25, Math.min(4, Math.min(w / vp1.width, h / vp1.height)));
-    fitRef.current = 'page';
-    setFit('page');
-    setScale(s);
-  }, []);
+    if (!pdfRef.current || !wrapRef.current) return
+    const p = await pdfRef.current.getPage(pageRef.current)
+    const vp1 = p.getViewport({ scale: 1 })
+    const w = wrapRef.current.clientWidth
+    const h = wrapRef.current.clientHeight
+    const s = Math.max(0.25, Math.min(4, Math.min(w / vp1.width, h / vp1.height)))
+    fitRef.current = 'page'
+    setFit('page')
+    setScale(s)
+  }, [])
 
   const goTo = (n: number) => {
-    const m = Math.max(1, Math.min(numPages, n));
-    pageRef.current = m;
-    setPage(m);
-  };
-  const prev = () => goTo(pageRef.current - 1);
-  const next = () => goTo(pageRef.current + 1);
+    const m = Math.max(1, Math.min(numPages, n))
+    pageRef.current = m
+    setPage(m)
+  }
+  const prev = () => goTo(pageRef.current - 1)
+  const next = () => goTo(pageRef.current + 1)
 
   // ———————————— Chargement PDF ————————————
   useEffect(() => {
-    let cancelled = false;
-    const runId = ++runRef.current;
+    let cancelled = false
+    const runId = ++runRef.current
 
-    (async () => {
-      await ensureWorker();
-      cancelRender(); destroyPdf();
+    ;(async () => {
+      await ensureWorker()
+      cancelRender(); destroyPdf()
 
-      const task = (pdfjsLib as any).getDocument({ url });
-      const pdf  = await task.promise;
-      if (cancelled || runId !== runRef.current) { try { task.destroy(); } catch {}; return; }
+      const task = (pdfjsLib as any).getDocument({ url })
+      const pdf  = await task.promise
+      if (cancelled || runId !== runRef.current) { try { task.destroy() } catch {}; return }
 
-      pdfRef.current = pdf;
-      setNum(pdf.numPages);
-      pageRef.current = 1;
-      setPage(1);
+      pdfRef.current = pdf
+      setNum(pdf.numPages)
+      pageRef.current = 1
+      setPage(1)
 
-      if (fitRef.current === 'page') await fitPage();
-      else setScale(initialScale);
+      if (fitRef.current === 'page') await fitPage()
+      else setScale(initialScale)
 
-      await renderPage();
-    })().catch(console.error);
+      await renderPage()
+    })().catch(console.error)
 
-    return () => { cancelled = true; cancelRender(); destroyPdf(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url]);
+    return () => { cancelled = true; cancelRender(); destroyPdf() }
+  }, [url])
 
   // Re-render quand page/zoom changent
-  useEffect(() => { renderPage(); }, [page, scale, renderPage]);
+  useEffect(() => { renderPage() }, [page, scale, renderPage])
 
-  // Refit si on est en mode page
+  // Refit en mode page sur resize
   useEffect(() => {
-    if (fitMode !== 'page') return;
-    const ro = new ResizeObserver(() => fitPage());
-    if (wrapRef.current) ro.observe(wrapRef.current);
-    return () => ro.disconnect();
-  }, [fitMode, fitPage]);
+    if (fitMode !== 'page') return
+    const ro = new ResizeObserver(() => fitPage())
+    if (wrapRef.current) ro.observe(wrapRef.current)
+    return () => ro.disconnect()
+  }, [fitMode, fitPage])
 
-  // Molette : Ctrl/Cmd => zoom ; sinon changement de page aux bords
+  // Molette (zoom + pagination aux bords)
   useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
+    const el = wrapRef.current
+    if (!el) return
 
-    const EDGE = 4;
+    const EDGE = 4
     const onWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        setFit('none'); fitRef.current = 'none';
-        setScale((s) => {
-          const factor = e.deltaY > 0 ? 0.9 : 1.1;
-          return Math.max(0.25, Math.min(4, s * factor));
-        });
-        return;
+        e.preventDefault()
+        setFit('none'); fitRef.current = 'none'
+        setScale(s => Math.max(0.25, Math.min(4, s * (e.deltaY > 0 ? 0.9 : 1.1))))
+        return
       }
-
-      if (renderingRef.current) return;
-
-      const atTop    = el.scrollTop <= EDGE;
-      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - EDGE;
-
+      if (renderingRef.current) return
+      const atTop = el.scrollTop <= EDGE
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - EDGE
       if (e.deltaY > 0 && atBottom && pageRef.current < numPages) {
-        e.preventDefault();
-        next();
-        pendingScroll.current = 0;
+        e.preventDefault(); next(); pendingScroll.current = 0
       } else if (e.deltaY < 0 && atTop && pageRef.current > 1) {
-        e.preventDefault();
-        prev();
-        pendingScroll.current = Number.MAX_SAFE_INTEGER;
+        e.preventDefault(); prev(); pendingScroll.current = Number.MAX_SAFE_INTEGER
       }
-    };
+    }
 
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, [numPages]);
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [numPages])
 
-  // ———————————— Télécharger le PDF ————————————
+  // Télécharger
   const downloadPdf = async () => {
     try {
-      const res = await fetch(url, { credentials: 'include' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
+      const res = await fetch(url, { credentials: 'include' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const blob = await res.blob()
 
-      // Tente de récupérer un nom de fichier propre
-      let filename = 'document.pdf';
-      const cd = res.headers.get('content-disposition') || '';
-      const m = cd.match(/filename\*?=(?:UTF-8''|")?([^\";]+)/i);
+      let filename = 'document.pdf'
+      const cd = res.headers.get('content-disposition') || ''
+      const m = cd.match(/filename\*?=(?:UTF-8''|")?([^\";]+)/i)
       if (m?.[1]) {
-        try {
-          filename = decodeURIComponent(m[1]);
-        } catch { filename = m[1]; }
+        try { filename = decodeURIComponent(m[1]) } catch { filename = m[1] }
       } else {
-        // fallback: dernier segment de l'URL
-        const u = new URL(url, window.location.href);
-        const last = u.pathname.split('/').filter(Boolean).pop();
-        if (last) filename = last.includes('.') ? last : `${last}.pdf`;
+        const u = new URL(url, window.location.href)
+        const last = u.pathname.split('/').filter(Boolean).pop()
+        if (last) filename = last.includes('.') ? last : `${last}.pdf`
       }
 
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(link.href);
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(link.href)
     } catch (err) {
-      console.error('Download failed:', err);
-      alert("Impossible de télécharger le fichier. (Vérifie les en-têtes CORS/Content-Disposition côté API.)");
+      console.error('Download failed:', err)
+      alert("Impossible de télécharger le fichier.")
     }
-  };
+  }
 
   return (
-    <div style={{ width: '100%' }}>
+    <div className="pdfviewer">
       {/* Toolbar */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button onClick={() => prev()} disabled={page <= 1}>◀️</button>
-          <button onClick={() => next()} disabled={page >= numPages}>▶️</button>
-          <span style={{ marginLeft: 8 }}>
+      <div className="pdfbar" role="toolbar" aria-label="Contrôles du document">
+        <div className="pdfnav">
+          <button className="pdfbtn" onClick={prev} disabled={page <= 1} aria-label="Page précédente">‹</button>
+          <button className="pdfbtn" onClick={next} disabled={page >= numPages} aria-label="Page suivante">›</button>
+
+          <span className="pdfpage">
             Page{' '}
             <input
+              className="pdfpage-input"
               type="number"
               min={1}
               max={numPages}
               value={page}
               onChange={(e) => goTo(Number(e.target.value || 1))}
-              style={{ width: 64 }}
-            /> / {numPages}
+            />{' '}
+            / {numPages}
           </span>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
-          <button onClick={() => { setFit('none'); fitRef.current = 'none'; setScale((s) => Math.max(0.25, s - 0.1)); }}>－</button>
-          <button onClick={() => { setFit('none'); fitRef.current = 'none'; setScale((s) => Math.min(4, s + 0.1)); }}>＋</button>
-          <button onClick={() => fitPage()} title="Page entière">▭</button>
-          {/* ⬇️ Nouveau : Télécharger */}
-          <button onClick={downloadPdf} title="Télécharger le PDF">⬇ Télécharger</button>
+        <div className="pdfactions">
+          <button
+            className="pdfbtn"
+            onClick={() => { setFit('none'); fitRef.current = 'none'; setScale(s => Math.max(0.25, s - 0.1)) }}
+            aria-label="Zoom -"
+            title="Zoom -"
+          >-</button>
+
+          <button
+            className="pdfbtn"
+            onClick={() => { setFit('none'); fitRef.current = 'none'; setScale(s => Math.min(4, s + 0.1)) }}
+            aria-label="Zoom +"
+            title="Zoom +"
+          >+</button>
+
+          <button className="pdfbtn pdfbtn-primary" onClick={downloadPdf} title="Télécharger le PDF">
+            ⭳ Télécharger
+          </button>
         </div>
       </div>
 
       {/* Viewport */}
-      <div
-        ref={wrapRef}
-        style={{
-          height,
-          overflow: 'auto',
-          border: '1px solid #ddd',
-          background: '#fff',
-          display: 'grid',
-          placeItems: 'center',
-        }}
-      >
-        <canvas ref={canvasRef} style={{ display: 'block', margin: '0 auto' }} />
+      <div ref={wrapRef} className="pdfwrap" style={{ height }}>
+        <canvas ref={canvasRef} className="pdfcanvas" />
       </div>
-
-      <p style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
-        Astuces : Ctrl/Cmd + molette pour zoomer · molette aux bords pour changer de page.
-      </p>
     </div>
-  );
+  )
 }
