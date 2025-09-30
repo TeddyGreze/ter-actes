@@ -129,7 +129,7 @@ export default function HomePage() {
 
   return (
     <main className="raa-wrap">
-      <h1 className="raa-title">Portail des actes</h1>
+      <h1 className="raa-title">Recueil des actes</h1>
 
       {/* Filtres */}
       <div className="raa-filters">
@@ -139,7 +139,7 @@ export default function HomePage() {
             id="q"
             value={q}
             onChange={e => setQ(e.target.value)}
-            placeholder="mots-clés..."
+            placeholder="Mots-clés..."
             className="raa-input"
           />
         </div>
@@ -149,7 +149,7 @@ export default function HomePage() {
             id="type"
             value={type}
             onChange={e => setType(e.target.value)}
-            placeholder="arrêté, délibération..."
+            placeholder="Arrêté, Délibération..."
             className="raa-input"
           />
         </div>
@@ -316,4 +316,3 @@ export default function HomePage() {
     </main>
   )
 }
-
