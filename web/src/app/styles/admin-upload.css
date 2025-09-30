@@ -37,6 +37,8 @@ body{ background:var(--bg); color:var(--fg); margin:0;
   margin:0 0 12px 0;
   font-size:32px; font-weight:700; letter-spacing:.2px;
 }
+.u-note{ font-size:14px; color:#64748b; }
+.u-note a{ color:var(--brand-600); text-decoration:underline; }
 
 /* formulaire */
 .u-form{ display:grid; gap:14px; }
