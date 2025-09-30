@@ -26,7 +26,7 @@ body{
 
 .raa-title{
   font-size:28px;
-  font-weight:600;
+  font-weight:700;
   letter-spacing:.2px;
   margin:0;
 }
@@ -202,9 +202,9 @@ body{
 }
 .raa-open:hover{ text-decoration:underline; }
 
-/* Responsive : sous 920px, on cache Type/Service colonnes et on les
-   affiche en dessous du Nom comme méta */
+
 @media (max-width: 920px){
+  .raa-wrap{ padding-left: 15px; padding-right: 33px; }
   .raa-row{ grid-template-columns: 1fr 150px; }
   .raa-col-type, .raa-col-service{ display:none; }
   .raa-meta-mobile{ display:block; }

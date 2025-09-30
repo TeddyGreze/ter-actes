@@ -1,0 +1,200 @@
+/* ---------- Variables & base ---------- */
+:root{
+  --bg:#f7fafc;
+  --fg:#0f172a;
+  --muted:#475569;
+  --border:#e2e8f0;
+  --brand:#078d9a;
+  --brand-600:#067883;
+  --brand-700:#056a74;
+}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  color:var(--fg);
+  background:var(--bg);
+}
+
+/* ---------- Layout ---------- */
+.admin-wrap{
+  padding:24px;
+  max-width:1100px;
+  margin:0 auto;
+}
+.admin-title{
+  font-size:28px;
+  font-weight:700;
+  letter-spacing:.2px;
+  margin:0 0 6px 0;
+}
+.admin-topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.admin-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+
+/* Boutons */
+.btn-primary{
+  height:40px; padding:0 16px; border:0; border-radius:8px;
+  background:var(--brand); color:#fff; font-weight:700; cursor:pointer;
+  text-decoration:none; display:inline-flex; align-items:center;
+}
+.btn-primary:hover{ background:var(--brand-600); }
+.btn-ghost{
+  border:1px solid #cbd5e1; background:#fff; color:#0f172a;
+  padding:8px 12px; border-radius:8px; font-weight:600; cursor:pointer;
+}
+.btn-ghost:hover{ background:#f3f4f6; }
+.btn-outline{
+  border:1px solid #cbd5e1; background:#fff; color:#0f172a;
+  padding:6px 10px; border-radius:8px; font-weight:600; text-decoration:none;
+}
+.btn-outline:hover{ background:#f3f4f6; }
+.btn-danger{
+  border:1px solid #ef4444; color:#b91c1c; background:#fff;
+  padding:6px 10px; border-radius:8px; font-weight:700; cursor:pointer;
+}
+.btn-danger:hover{ background:#fee2e2; }
+
+/* ---------- Barre de filtres ---------- */
+.admin-filters{
+  display:grid;
+  gap:40px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+  align-items:end;
+  margin-top:16px;
+}
+.admin-filters .btn-primary{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center; 
+  text-align: center;
+}
+.f-field label{
+  display:block; font-size:13px; color:#334155; margin-bottom:6px;
+}
+.f-input{
+  width:100%; border:1px solid #cbd5e1; background:#fff; border-radius:8px;
+  padding:10px 12px; outline:none; transition:border .15s, box-shadow .15s;
+}
+.f-input:focus{
+  border-color:var(--brand);
+  box-shadow:0 0 0 3px color-mix(in oklab, var(--brand) 20%, transparent);
+}
+
+/* ===== Pagination pill ===== */
+.pager-wrap{ display:flex; justify-content:center; margin-top:16px; }
+.pager-pill{
+  display:grid; grid-auto-flow:column; align-items:stretch;
+  border:1px solid #7c6a3d; border-radius:999px; overflow:hidden; background:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.05);
+}
+.pager-pill > *{
+  min-width:56px; padding:10px 14px; font-weight:600; font-size:14px; line-height:1;
+  background:#fff; color:#0f172a; border:0;
+}
+.pager-pill > * + *{ border-left:1px solid #7c6a3d; }
+.pager-pill button{ cursor:pointer; }
+.pager-pill button:hover:not(:disabled){ background:#f8fafc; }
+.pager-pill button:disabled{ color:#94a3b8; cursor:not-allowed; background:#fff; }
+.pager-pill .count{ background:var(--brand-600); color:#fff; text-align:center; }
+.pager-pill button:focus-visible{ outline:2px solid var(--brand-600); outline-offset:2px; border-radius:6px; }
+
+/* ==== Tableau ADMIN ===================================================== */
+.admin-table{
+  margin-top:24px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+
+/* Nom | Publication | Type | Service | Actions */
+.t-row{
+  display:grid;
+  grid-template-columns: 1fr 170px 170px 170px 200px;
+  gap:12px;
+  align-items:center;
+  padding:12px 16px;
+  border-bottom:1px solid var(--border);
+}
+.t-row:last-child{ border-bottom:0; }
+
+.t-head{
+  background:#f8fafc;
+  font-weight:700;
+  color:#0f172a;
+  user-select:none;
+}
+.t-th{ display:flex; align-items:center; gap:6px; cursor:pointer; }
+.t-th .sort{ font-size:12px; color:#64748b; opacity:.9; }
+.t-th.active{ color:var(--brand); }
+.t-th.active .sort{ color:var(--brand); }
+
+.t-cell{ min-width:0; }
+.t-name{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.t-title{
+  font-weight:700; color:#0f172a;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.t-meta-mobile{ display:none; font-size:13px; color:var(--muted); }
+
+.t-actions{ display:flex; gap:8px; justify-content:flex-end; }
+
+.t-row:not(.t-head):hover{ background:#f9fafb; }
+
+
+
+/*  ====================== Responsive ======================= */
+@media (max-width: 900px){
+  .admin-filters{ row-gap:12px; grid-template-columns: 1fr 1fr; }
+  .admin-wrap{ padding-left: 15px; padding-right: 33px; }
+  .t-row{ grid-template-columns: 1fr 150px 200px; }
+  .t-row .t-cell:nth-child(3),
+  .t-row .t-cell:nth-child(4) { display:none; }
+  .t-meta-mobile{ display:block; }
+  .t-head .t-cell:nth-child(3),
+  .t-head .t-cell:nth-child(4){ display:none; }
+}
+
+/* ================= Téléphone uniquement ================= */
+@media (max-width: 520px){
+
+  .admin-filters{ grid-template-columns: 1fr; }
+  .t-row{
+    grid-template-columns: 1fr auto;
+  }
+  .t-row .t-cell:nth-child(2){ display:none; }        
+  .t-head .t-cell:nth-child(2){ display:none; }         
+
+  .t-meta-mobile{ display:block; margin-top:4px; color:#475569; }
+  .t-meta-mobile .m-date{
+    font-size:14px; font-weight:600; color:#0f172a;
+    margin-bottom:2px;
+  }
+  .t-meta-mobile .m-inline{
+    font-size:13px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .t-actions{
+    display:flex; flex-direction:column; gap:8px; justify-content:center; align-items:stretch;
+  }
+  .t-actions .btn-outline,
+  .t-actions .btn-danger{
+    display: flex;           
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 10px;      
+    min-height: 40px;        
+    font-size: 16px;         
+    border-radius: 12px;
+  }
+  .t-actions{
+    display:flex; flex-direction:column; gap:8px;
+    align-items:stretch;  
+    justify-content:center;
+  }
+}
+
