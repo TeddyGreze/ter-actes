@@ -2,15 +2,15 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import '../../styles/admin-auth.css';
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
 export default function AdminLogin() {
   const search = useSearchParams();
-  // ➜ par défaut on va sur le tableau de bord
   const next = search.get('next') || '/admin';
 
-  const [email, setEmail] = useState('');
+  const [ident, setIdent] = useState('');
   const [password, setPassword] = useState('');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,29 +21,28 @@ export default function AdminLogin() {
     setMsg('');
 
     try {
-      // Auth FastAPI (pose le cookie HttpOnly access_token)
+      // Auth FastAPI (cookie HttpOnly access_token)
       const form = new FormData();
-      form.set('username', email);
+      form.set('username', ident);
       form.set('password', password);
 
       const res = await fetch(`${API}/admin/login`, {
         method: 'POST',
         body: form,
-        credentials: 'include', // important: reçoit le cookie JWT
+        credentials: 'include',
         cache: 'no-store',
       });
 
       if (!res.ok) {
-        setMsg('Échec de connexion');
+        setMsg('Identifiant ou mot de passe incorrect.');
         return;
       }
 
-      // Pose un cookie côté Next pour que middleware/layout voient immédiatement la session
+      // Cookie côté Next pour rendre la session visible immédiatement
       await fetch('/api/session/set', { method: 'POST', cache: 'no-store' }).catch(() => {});
 
-      // Hard reload pour rejouer le middleware avec cookies à jour
       window.location.assign(next);
-    } catch (err) {
+    } catch {
       setMsg('Erreur réseau. Réessayez.');
     } finally {
       setLoading(false);
@@ -51,35 +50,45 @@ export default function AdminLogin() {
   };
 
   return (
-    <main style={{ padding: 24, maxWidth: 480, margin: '0 auto' }}>
-      <h1>Connexion Admin</h1>
+    <main className="auth-shell">
+      <div className="auth-wrap">
+        <div className="auth-card">
+          <h1 className="a-title">Connexion Admin</h1>
 
-      <form onSubmit={submit} style={{ display: 'grid', gap: 12 }}>
-        <label>
-          Email
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="username"
-          />
-        </label>
+          <form onSubmit={submit} className="a-form" noValidate>
+            <div className="a-field">
+              <label htmlFor="ident">Identifiant</label>
+              <input
+                id="ident"
+                className="a-input"
+                value={ident}
+                onChange={(e) => setIdent(e.target.value)}
+                autoComplete="username"
+                required
+              />
+            </div>
 
-        <label>
-          Mot de passe
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
-        </label>
+            <div className="a-field">
+              <label htmlFor="pass">Mot de passe</label>
+              <input
+                id="pass"
+                className="a-input"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? 'Connexion…' : 'Se connecter'}
-        </button>
+            <button type="submit" className="a-btn" disabled={loading}>
+              {loading ? 'Connexion…' : 'Se connecter'}
+            </button>
 
-        {msg && <p style={{ color: 'crimson' }}>{msg}</p>}
-      </form>
+            {msg && <p className="a-error" role="alert">{msg}</p>}
+          </form>
+        </div>
+      </div>
     </main>
   );
 }
