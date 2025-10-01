@@ -1,0 +1,44 @@
+/* ===== Toasts ===== */
+.toast-wrap{
+  position:fixed; right:16px; bottom:16px;
+  display:flex; flex-direction:column; gap:8px;
+  z-index:2000;
+}
+.toast{
+  min-width:220px; max-width:360px;
+  padding:10px 12px; border-radius:10px;
+  box-shadow:0 6px 20px rgba(0,0,0,.15);
+  font-weight:600; color:#fff;
+  animation:toast-in .2s ease-out;
+}
+.toast--info{    background:#0ea5e9; }
+.toast--success{ background:#10b981; }
+.toast--error{   background:#ef4444; }
+
+@keyframes toast-in{
+  from{ transform:translateY(8px); opacity:0 }
+  to{   transform:translateY(0);   opacity:1 }
+}
+
+/* ===== Skeletons ===== */
+.skel{
+  background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 37%,#e5e7eb 63%);
+  background-size:400% 100%;
+  animation:skel 1.2s ease-in-out infinite;
+  border-radius:8px;
+}
+@keyframes skel{ 0%{background-position:100% 0} 100%{background-position:0 0} }
+
+.skel-line{ height:14px }
+.skel-pill{ height:28px; border-radius:9999px }
+
+/* Ligne “tableau” générique (admin/public) */
+.skel-row{
+  display:grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr auto;
+  gap:12px;
+  padding:12px;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  background:#fff;
+}

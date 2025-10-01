@@ -212,3 +212,24 @@ body{
 @media (min-width: 921px){
   .raa-meta-mobile{ display:none; }
 }
+
+
+/* ===== Skeleton loading ===== */
+.skel-line{
+  height:14px;
+  border-radius:8px;
+  background:linear-gradient(90deg,#f1f5f9,#e2e8f0,#f1f5f9);
+  animation:skel 1.2s infinite linear;
+  background-size:200% 100%;
+}
+.skel-pill{
+  height:28px;
+  border-radius:999px;
+  background:linear-gradient(90deg,#f1f5f9,#e2e8f0,#f1f5f9);
+  animation:skel 1.2s infinite linear;
+  background-size:200% 100%;
+}
+@keyframes skel{
+  0%{background-position:200% 0}
+  100%{background-position:-200% 0}
+}

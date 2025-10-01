@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import '../../styles/admin.css'
+import { useToast } from '../../../components/Toast'
+import { Skeleton } from '../../../components/Skeleton'
 
 export const dynamic = 'force-dynamic'
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
@@ -33,13 +35,13 @@ const fmtDate = (iso?: string) =>
 
 export default function AdminDashboard() {
   const router = useRouter()
+  const toast = useToast()
 
-  // Auth + data
   const [items, setItems] = useState<Acte[]>([])
   const [totalPages, setTotalPages] = useState<number | undefined>(undefined)
   const [loading, setLoading] = useState(true)
 
-  // Filtres (accent-insensibles côté front)
+  // Filtres
   const [q, setQ] = useState('')
   const [type, setType] = useState('')
   const [service, setService] = useState('')
@@ -55,17 +57,16 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const boot = async () => {
-      // 1) session
       const me = await fetch(`${API}/admin/me`, {
         credentials: 'include',
         cache: 'no-store',
         headers: { 'cache-control': 'no-cache', pragma: 'no-cache' },
       })
       if (!me.ok) {
+        toast.error('Session expirée')
         router.replace('/admin/login')
         return
       }
-      // 2) première page
       await load(1)
     }
     boot()
@@ -75,9 +76,7 @@ export default function AdminDashboard() {
   async function load(p = page) {
     setLoading(true)
     const url = new URL(`${API}/admin/actes`)
-    // on peut garder q côté API si dispo
     if (q) url.searchParams.set('q', q)
-    // on ne transmet PAS type/service/date pour garantir l’insensibilité côté front
     url.searchParams.set('page', String(p))
     url.searchParams.set('size', String(PAGE_SIZE))
 
@@ -87,6 +86,7 @@ export default function AdminDashboard() {
       headers: { 'cache-control': 'no-cache', pragma: 'no-cache' },
     })
     if (!res.ok) {
+      toast.error('Erreur de chargement')
       router.replace('/admin/login')
       return
     }
@@ -132,7 +132,8 @@ export default function AdminDashboard() {
       setSortDir('asc')
     }
   }
-  const sortArrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : '↕')
+  const sortArrow = (key: SortKey) =>
+    sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : '↕'
 
   // Filtrage accent/casse + date range + tri
   const displayItems = useMemo(() => {
@@ -162,9 +163,7 @@ export default function AdminDashboard() {
     const arr = [...filtered]
     arr.sort((a, b) => {
       const get = (it: Acte, k: SortKey) =>
-        k === 'date_publication'
-          ? (it.date_publication || it.created_at || '')
-          : (it[k] || '')
+        k === 'date_publication' ? (it.date_publication || it.created_at || '') : (it[k] || '')
       const A = get(a, sortKey).toString().toLowerCase()
       const B = get(b, sortKey).toString().toLowerCase()
       if (A < B) return sortDir === 'asc' ? -1 : 1
@@ -174,7 +173,6 @@ export default function AdminDashboard() {
     return arr
   }, [items, q, type, service, dateMin, dateMax, sortKey, sortDir])
 
-  // Pagination (la suivante basée sur la page API, pas sur le filtrage client)
   const hasPrev = page > 1
   const hasNext = typeof totalPages === 'number' ? page < totalPages : items.length === PAGE_SIZE
 
@@ -186,7 +184,12 @@ export default function AdminDashboard() {
       cache: 'no-store',
       headers: { 'cache-control': 'no-cache', pragma: 'no-cache' },
     })
-    if (res.ok) load(page)
+    if (res.ok) {
+      toast.success('Acte supprimé')
+      load(page)
+    } else {
+      toast.error('Échec de la suppression')
+    }
   }
 
   return (
@@ -200,7 +203,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Filtres (même look que public) */}
+      {/* Filtres */}
       <div className="admin-filters">
         <div className="f-field">
           <label>Recherche</label>
@@ -267,32 +270,51 @@ export default function AdminDashboard() {
           <div className="t-cell t-th t-actions">Actions</div>
         </div>
 
-        {displayItems.map(a => {
-          const date = a.date_publication || a.created_at
-          return (
-            <div key={a.id} className="t-row" role="row">
-              <div className="t-cell t-name" role="cell">
-                <span className="t-title" title={a.titre}>{a.titre}</span>
-                <div className="t-meta-mobile">
-                  <div className="m-date">{fmtDate(date)}</div>
-                  <div className="m-inline">
-                    {a.type || '—'} · {a.service || '—'}
+        {loading ? (
+          Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="skel-row" role="row" aria-hidden="true">
+              <Skeleton className="skel-line" />
+              <Skeleton className="skel-line" />
+              <Skeleton className="skel-line" />
+              <Skeleton className="skel-line" />
+              <Skeleton className="skel-pill" style={{ width: 120 }} />
+            </div>
+          ))
+        ) : (
+          <>
+            {displayItems.map(a => {
+              const date = a.date_publication || a.created_at
+              return (
+                <div key={a.id} className="t-row" role="row">
+                  <div className="t-cell t-name" role="cell">
+                    <span className="t-title" title={a.titre}>{a.titre}</span>
+                    <div className="t-meta-mobile">
+                      <div className="m-date">{fmtDate(date)}</div>
+                      <div className="m-inline">
+                        {a.type || '—'} · {a.service || '—'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="t-cell" role="cell">{fmtDate(date)}</div>
+                  <div className="t-cell" role="cell">{a.type || '—'}</div>
+                  <div className="t-cell" role="cell">{a.service || '—'}</div>
+
+                  {/* Actions */}
+                  <div className="t-cell t-actions" role="cell">
+                    <Link href={`/acte/${a.id}?from=admin`} className="btn-outline btn-open">Ouvrir</Link>
+                    <div className="a-row">
+                      <Link href={`/admin/actes/${a.id}/edit`} className="btn-outline">Modifier</Link>
+                      <button onClick={()=>onDelete(a.id)} className="btn-danger">Supprimer</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="t-cell" role="cell">{fmtDate(date)}</div>
-              <div className="t-cell" role="cell">{a.type || '—'}</div>
-              <div className="t-cell" role="cell">{a.service || '—'}</div>
-              <div className="t-cell t-actions" role="cell">
-                <Link href={`/admin/actes/${a.id}/edit`} className="btn-outline">Modifier</Link>
-                <button onClick={()=>onDelete(a.id)} className="btn-danger">Supprimer</button>
-              </div>
-            </div>
-          )
-        })}
+              )
+            })}
 
-        {!loading && displayItems.length === 0 && (
-          <div className="t-row t-empty">Aucun acte</div>
+            {displayItems.length === 0 && (
+              <div className="t-row t-empty">Aucun acte</div>
+            )}
+          </>
         )}
       </div>
 
@@ -314,4 +336,3 @@ export default function AdminDashboard() {
     </main>
   )
 }
-

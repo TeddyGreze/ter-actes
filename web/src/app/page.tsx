@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import './styles/raa.css'
+import { Skeleton } from '../components/Skeleton' // ⬅️ ajout
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 const PAGE_SIZE = 10 as const
@@ -42,38 +43,50 @@ export default function HomePage() {
   // Données
   const [items, setItems] = useState<Acte[]>([])
 
+  // Chargement (⬅️ ajout)
+  const [loading, setLoading] = useState(true)
+
   // Tri
   const [sortKey, setSortKey] = useState<SortKey>('date_publication')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   async function search(p = page) {
-    const params = new URLSearchParams()
+    setLoading(true) // ⬅️ ajout
+    try {
+      const params = new URLSearchParams()
 
-    if (q) params.set('q', q)
-    if (dateMin) params.set('date_min', dateMin)
-    if (dateMax) params.set('date_max', dateMax)
+      if (q) params.set('q', q)
+      if (dateMin) params.set('date_min', dateMin)
+      if (dateMax) params.set('date_max', dateMax)
 
-    params.set('page', String(p))
-    params.set('size', String(PAGE_SIZE))
+      params.set('page', String(p))
+      params.set('size', String(PAGE_SIZE))
 
-    const res = await fetch(`${API}/actes?${params.toString()}`, { cache: 'no-store' })
-    const data = await res.json()
+      const res = await fetch(`${API}/actes?${params.toString()}`, { cache: 'no-store' })
+      const data = await res.json()
 
-    if (Array.isArray(data)) {
-      setItems(data)
-      setTotalPages(undefined) // total inconnu
-    } else {
-      const arr: Acte[] = data.items ?? data.results ?? data.data ?? []
-      setItems(arr)
-      const total =
-        typeof data.total_pages === 'number'
-          ? data.total_pages
-          : typeof data.total === 'number'
-          ? Math.max(1, Math.ceil(data.total / PAGE_SIZE))
-          : undefined
-      setTotalPages(total)
+      if (Array.isArray(data)) {
+        setItems(data)
+        setTotalPages(undefined) // total inconnu
+      } else {
+        const arr: Acte[] = data.items ?? data.results ?? data.data ?? []
+        setItems(arr)
+        const total =
+          typeof data.total_pages === 'number'
+            ? data.total_pages
+            : typeof data.total === 'number'
+            ? Math.max(1, Math.ceil(data.total / PAGE_SIZE))
+            : undefined
+        setTotalPages(total)
+      }
+      setPage(p)
+    } catch (e) {
+      console.error('Search failed:', e)
+      setItems([])
+      setTotalPages(undefined)
+    } finally {
+      setLoading(false) // ⬅️ ajout
     }
-    setPage(p)
   }
 
   useEffect(() => {
@@ -232,35 +245,58 @@ export default function HomePage() {
           </div>
         </div>
 
-        {displayItems.map(it => {
-          const date = it.date_publication || it.created_at
-          return (
-            <div key={it.id} className="raa-row" role="row">
-              <div className="raa-cell raa-name" role="cell">
-                <span className="title" title={it.titre}>
-                  {it.titre}
-                </span>
-                <Link href={`/acte/${it.id}`} className="raa-open">
-                  Ouvrir
-                </Link>
-                {(it.type || it.service) && (
-                  <div className="raa-meta-mobile raa-meta">
-                    {it.type || ''} {it.service ? `· ${it.service}` : ''}
-                  </div>
-                )}
+        {loading ? (
+          // Skeletons alignés sur les 4 colonnes
+          Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="raa-row" role="row" aria-hidden="true">
+              <div className="raa-cell raa-name">
+                <Skeleton className="skel-line" style={{ width: '60%' }} />
+                <div className="raa-meta">
+                  <Skeleton className="skel-pill" style={{ width: 80 }} />
+                </div>
               </div>
-              <div className="raa-cell" role="cell">
-                {formatDate(date)}
+              <div className="raa-cell">
+                <Skeleton className="skel-line" style={{ width: 90 }} />
               </div>
-              <div className="raa-cell raa-col-type" role="cell">
-                {it.type || '—'}
+              <div className="raa-cell raa-col-type">
+                <Skeleton className="skel-line" style={{ width: 120 }} />
               </div>
-              <div className="raa-cell raa-col-service" role="cell">
-                {it.service || '—'}
+              <div className="raa-cell raa-col-service">
+                <Skeleton className="skel-line" style={{ width: 130 }} />
               </div>
             </div>
-          )
-        })}
+          ))
+        ) : (
+          displayItems.map(it => {
+            const date = it.date_publication || it.created_at
+            return (
+              <div key={it.id} className="raa-row" role="row">
+                <div className="raa-cell raa-name" role="cell">
+                  <span className="title" title={it.titre}>
+                    {it.titre}
+                  </span>
+                  <Link href={`/acte/${it.id}`} className="raa-open">
+                    Ouvrir
+                  </Link>
+                  {(it.type || it.service) && (
+                    <div className="raa-meta-mobile raa-meta">
+                      {it.type || ''} {it.service ? `· ${it.service}` : ''}
+                    </div>
+                  )}
+                </div>
+                <div className="raa-cell" role="cell">
+                  {formatDate(date)}
+                </div>
+                <div className="raa-cell raa-col-type" role="cell">
+                  {it.type || '—'}
+                </div>
+                <div className="raa-cell raa-col-service" role="cell">
+                  {it.service || '—'}
+                </div>
+              </div>
+            )
+          })
+        )}
       </div>
 
       {/* Pagination */}

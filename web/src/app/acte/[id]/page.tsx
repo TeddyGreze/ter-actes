@@ -1,9 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import '../../styles/acte.css'  
+import '../../styles/acte.css'
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 const PDFViewer = dynamic(() => import('../../../components/PDFViewer'), { ssr: false })
@@ -24,7 +24,19 @@ const formatDate = (iso?: string) =>
 
 export default function ActePage() {
   const params = useParams() as { id: string }
+  const search = useSearchParams()
+  const router = useRouter()
+
   const [acte, setActe] = useState<Acte | null>(null)
+
+  // Détermine la bonne cible du bouton “Retour”
+  const from = search.get('from')
+  let backHref = '/'
+  if (from === 'admin') backHref = '/admin'
+  else if (typeof document !== 'undefined' && document.referrer.includes('/admin')) {
+    // fallback utile si on arrive depuis l’admin sans le paramètre (ou via l’historique)
+    backHref = '/admin'
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -47,7 +59,8 @@ export default function ActePage() {
 
   return (
     <main className="acte-wrap">
-      <Link href="/" className="acte-back">← Retour</Link>
+      {/* Bouton retour : utilise la bonne cible */}
+      <Link href={backHref} className="acte-back">← Retour</Link>
 
       <h1 className="acte-title">{acte.titre}</h1>
 

@@ -42,17 +42,24 @@ body{ background:var(--bg); color:var(--fg); margin:0;
 
 /* formulaire */
 .u-form{ display:grid; gap:14px; }
+
+/* ⬇️ pleine largeur pour CHAQUE champ */
 .u-field{
-  max-width: 93%;
-  padding-right: 50px;
   width: 100%;
+  max-width: 100%;
+  padding-right: 0;          /* on enlève la marge qui réduisait visuellement la largeur */
   margin-inline: auto;
 }
+
 .u-field label{
   display:block; font-size:14px; color:#334155; margin-bottom:6px;
 }
+
+/* champs uniformisés */
 .u-input{
   width:100%;
+  display:block;            /* évite le shrink des <select> */
+  box-sizing:border-box;    /* largeur stable */
   border:1px solid #cbd5e1;
   background:#fff;
   border-radius:10px;
@@ -65,6 +72,18 @@ body{ background:var(--bg); color:var(--fg); margin:0;
   border-color:var(--brand-600);
   box-shadow:0 0 0 3px rgba(6,120,131,.2);
 }
+
+/* précisions pour que tous restent à 100% */
+select.u-input,
+input.u-input[type="date"],
+textarea.u-input{
+  width:100%;
+  display:block;
+  box-sizing:border-box;
+}
+
+textarea.u-input{ min-height:110px; }
+
 .u-file{ padding:8px 10px; }
 .u-filemeta{ font-size:13px; color:#64748b; margin-top:4px; }
 
@@ -79,7 +98,6 @@ body{ background:var(--bg); color:var(--fg); margin:0;
 .u-btn:disabled{ opacity:.7; cursor:not-allowed; }
 
 .u-msg{ margin:0; font-weight:700; color:#0f172a; }
-
 
 /* ============= Responsive =============== */
 @media (max-width:560px){
