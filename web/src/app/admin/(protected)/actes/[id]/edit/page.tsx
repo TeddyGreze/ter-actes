@@ -5,10 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
-// CSS (chemin depuis .../app/admin/(protected)/actes/[id]/edit/page.tsx)
 import '../../../../../styles/admin-upload.css';
 
-type PDFViewerProps = { url: string };
+type PDFViewerProps = { url?: string; file?: File | Blob | null };
 const PDFViewer = dynamic<PDFViewerProps>(
   () => import('../../../../../../components/PDFViewer'),
   { ssr: false }
@@ -37,6 +36,7 @@ export default function EditActePage() {
   const [file, setFile] = useState<File | null>(null);
   const [msg, setMsg] = useState('');
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   // référentiels + “Autre…”
   const [types, setTypes] = useState<string[]>([]);
@@ -52,6 +52,8 @@ export default function EditActePage() {
   // Modale d’aperçu (PDF actuel OU nouveau fichier)
   const [showPreview, setShowPreview] = useState(false);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+
+  // blob URL du nouveau fichier
   const [newFileUrl, setNewFileUrl] = useState<string | null>(null);
 
   // version pour casser le cache du PDF actuel
@@ -97,7 +99,8 @@ export default function EditActePage() {
     const url = URL.createObjectURL(file);
     setNewFileUrl(url);
     return () => URL.revokeObjectURL(url);
-  }, [file, newFileUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file]);
 
   // ESC pour fermer la modale
   useEffect(() => {
@@ -106,12 +109,79 @@ export default function EditActePage() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // Analyse auto quand on remplace le PDF dans l'édition
+  const handleNewPdfChange = async (f: File | null) => {
+    setFile(f);
+    if (!f) return;
+    if (!a) return;
+
+    setAnalyzing(true);
+    setMsg('');
+
+    try {
+      const fd = new FormData();
+      fd.set('pdf', f);
+
+      const res = await fetch(`${API}/admin/analyse-pdf`, {
+        method: 'POST',
+        body: fd,
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // data = { fulltext_excerpt, date_auto, service_auto, type_auto }
+
+        setA(prev => {
+            if (!prev) return prev;
+            let next = { ...prev };
+
+            // date_signature
+            if (!next.date_signature && data.date_auto) {
+              next.date_signature = data.date_auto;
+            }
+
+            // type
+            if (data.type_auto) {
+              if (types.includes(data.type_auto)) {
+                setUseCustomType(false);
+                next.type = next.type || data.type_auto;
+              } else {
+                setUseCustomType(true);
+                setCustomType(data.type_auto);
+              }
+            }
+
+            // service
+            if (data.service_auto) {
+              if (services.includes(data.service_auto)) {
+                setUseCustomService(false);
+                next.service = next.service || data.service_auto;
+              } else {
+                setUseCustomService(true);
+                setCustomService(data.service_auto);
+              }
+            }
+
+            return next;
+        });
+      } else {
+        console.warn('analyse-pdf error', res.status);
+      }
+    } catch (err) {
+      console.error('analyse-pdf failed:', err);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!a) return;
     setSaving(true); setMsg('');
 
-    // On applique la saisie libre si l’utilisateur est resté en mode “Autre…”
+    // On applique la saisie libre si l’utilisateur est en mode “Autre…”
     const finalType = useCustomType ? customType : (a.type || '');
     const finalService = useCustomService ? customService : (a.service || '');
 
@@ -145,8 +215,6 @@ export default function EditActePage() {
     router.replace('/admin');
   };
 
-  /* ---------- UI ---------- */
-
   if (!a) {
     return (
       <main className="upload-shell">
@@ -170,6 +238,7 @@ export default function EditActePage() {
               href="#"
               onClick={(e) => {
                 e.preventDefault();
+                // Aperçu du PDF actuel stocké côté API
                 setPreviewSrc(`${API}/actes/${a.id}/pdf?ts=${pdfVersion}`);
                 setShowPreview(true);
               }}
@@ -292,6 +361,7 @@ export default function EditActePage() {
                 value={a.date_signature || ''}
                 onChange={(e) => setA({ ...a, date_signature: e.target.value || null })}
               />
+              {analyzing && <small className="u-note">Analyse en cours…</small>}
             </div>
 
             <div className="u-field">
@@ -334,7 +404,7 @@ export default function EditActePage() {
                 type="file"
                 accept="application/pdf"
                 className="u-input u-file"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                onChange={(e) => handleNewPdfChange(e.target.files?.[0] || null)}
               />
               {file && (
                 <div className="u-filemeta">
@@ -344,7 +414,11 @@ export default function EditActePage() {
                     href="#"
                     onClick={(e) => {
                       e.preventDefault();
-                      if (newFileUrl) { setPreviewSrc(newFileUrl); setShowPreview(true); }
+                      if (newFileUrl) {
+                        // aperçu du NOUVEAU fichier choisi
+                        setPreviewSrc(newFileUrl);
+                        setShowPreview(true);
+                      }
                     }}
                     title="Prévisualiser le nouveau fichier"
                   >
@@ -365,6 +439,17 @@ export default function EditActePage() {
                   </a>
                 </div>
               )}
+              {analyzing && <div className="u-note">Extraction automatique des métadonnées…</div>}
+            </div>
+
+            <div className="u-field">
+              <label htmlFor="statut2">Statut (rappel)</label>
+              <input
+                id="statut2"
+                className="u-input"
+                value={a.statut || ''}
+                onChange={(e) => setA({ ...a, statut: e.target.value })}
+              />
             </div>
 
             <button type="submit" className="u-btn" disabled={saving}>
@@ -401,8 +486,12 @@ export default function EditActePage() {
                 Fermer
               </button>
             </div>
+
             <div style={{ width: '100%', height: 'calc(100% - 44px)' }}>
-              <PDFViewer url={previewSrc} />
+              {/* PDFViewer reçoit :
+                 - file (si on vient de sélectionner un nouveau PDF)
+                 - url (si on affiche le PDF actuel déjà publié) */}
+              <PDFViewer file={file} url={previewSrc || undefined} />
             </div>
           </div>
         </div>

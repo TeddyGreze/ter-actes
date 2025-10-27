@@ -5,13 +5,12 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
-// ⚠️ Chemins depuis: /src/app/admin/(protected)/upload/page.tsx
 import '../../../styles/admin-upload.css';
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
-// PDFViewer dynamiquement côté client (uniformisé avec la page edit)
-type PDFViewerProps = { url: string };
+// PDFViewer dynamiquement côté client
+type PDFViewerProps = { url?: string; file?: File | Blob | null };
 const PDFViewer = dynamic<PDFViewerProps>(
   () => import('../../../../components/PDFViewer'),
   { ssr: false }
@@ -21,7 +20,7 @@ export default function AdminUpload() {
   const search = useSearchParams();
   const next = search.get('next') || null;
 
-  // Référentiels
+  // Référentiels => utilisés aussi pour valider ce que l'OCR propose
   const [types, setTypes] = useState<string[]>([]);
   const [services, setServices] = useState<string[]>([]);
 
@@ -35,25 +34,29 @@ export default function AdminUpload() {
     resume: '',
   });
 
-  // Gestion "Autre…" (saisie libre)
+  // gestion champ personnalisé "Autre…"
   const [useCustomType, setUseCustomType] = useState(false);
   const [customType, setCustomType] = useState('');
   const [useCustomService, setUseCustomService] = useState(false);
   const [customService, setCustomService] = useState('');
 
+  // pdf sélectionné
   const [file, setFile] = useState<File | null>(null);
-  const [msg, setMsg] = useState('');
-  const [checking, setChecking] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
 
-  // ref vers l'input fichier pour pouvoir le vider visuellement
+  // UI state
+  const [msg, setMsg] = useState('');
+  const [checking, setChecking] = useState(true);    // vérification session admin
+  const [submitting, setSubmitting] = useState(false); // bouton Publier
+  const [analyzing, setAnalyzing] = useState(false); // analyse OCR en cours
+
+  // ref pour pouvoir reset l'input file
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // --- Aperçu PDF (blob URL + modale avec PDFViewer)
+  // aperçu PDF (en modal)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  // crée / révoque l’URL blob quand le fichier change
+  // blob URL pour prévisualisation locale
   useEffect(() => {
     if (!file) {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -63,16 +66,17 @@ export default function AdminUpload() {
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
-  }, [file, previewUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file]);
 
-  // ESC pour fermer la modale
+  // ESC pour fermer la modale d’aperçu
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowPreview(false); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // ⛔️ vérifie la session réelle + charge les référentiels (sans cache)
+  // Vérifie la session admin + charge référentiels officiels (types/services)
   useEffect(() => {
     const boot = async () => {
       try {
@@ -93,7 +97,10 @@ export default function AdminUpload() {
         setTypes(Array.isArray(tData) ? tData.map((r: any) => r.name) : []);
         setServices(Array.isArray(sData) ? sData.map((r: any) => r.name) : []);
       } catch {
-        window.location.assign('/admin/login' + (next ? `?next=${encodeURIComponent(next)}` : ''));
+        // pas connecté => redirection login
+        window.location.assign(
+          '/admin/login' + (next ? `?next=${encodeURIComponent(next)}` : '')
+        );
         return;
       } finally {
         setChecking(false);
@@ -102,23 +109,92 @@ export default function AdminUpload() {
     boot();
   }, [next]);
 
+  // Analyse auto du PDF dès qu'on le choisit
+  const handleFileChange = async (f: File | null) => {
+    setFile(f);
+    if (!f) return;
+
+    setAnalyzing(true);
+    setMsg('');
+
+    try {
+      const fd = new FormData();
+      fd.set('pdf', f);
+
+      const res = await fetch(`${API}/admin/analyse-pdf`, {
+        method: 'POST',
+        body: fd,
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // data = { fulltext_excerpt, date_auto, service_auto, type_auto }
+
+        // propose la date de signature détectée si le champ est encore vide
+        setForm(prev => ({
+          ...prev,
+          date_signature: prev.date_signature || (data.date_auto || prev.date_signature),
+        }));
+
+        // propose le type détecté
+        if (data.type_auto) {
+          if (types.includes(data.type_auto)) {
+            // reconnu => on reste en mode sélection
+            setUseCustomType(false);
+            setForm(prev => ({
+              ...prev,
+              type: prev.type || data.type_auto,
+            }));
+          } else {
+            // inconnu => passe en "Autre…"
+            setUseCustomType(true);
+            setCustomType(data.type_auto);
+          }
+        }
+
+        // propose le service détecté
+        if (data.service_auto) {
+          if (services.includes(data.service_auto)) {
+            setUseCustomService(false);
+            setForm(prev => ({
+              ...prev,
+              service: prev.service || data.service_auto,
+            }));
+          } else {
+            setUseCustomService(true);
+            setCustomService(data.service_auto);
+          }
+        }
+      } else {
+        console.warn('analyse-pdf error', res.status);
+      }
+    } catch (err) {
+      console.error('analyse-pdf failed:', err);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  // Soumission du formulaire => création d'acte
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg('');
 
     if (!file) {
-      setMsg('Sélectionnez un PDF');
-      return;
+        setMsg('Sélectionnez un PDF');
+        return;
     }
 
     setSubmitting(true);
 
     const fd = new FormData();
 
-    // champs texte de base
+    // champs texte simples
     fd.set('titre', form.titre);
 
-    // valeurs finales type/service (liste ou saisie libre)
+    // valeurs finales type / service
     const finalType = useCustomType ? customType : form.type;
     const finalService = useCustomService ? customService : form.service;
 
@@ -129,7 +205,7 @@ export default function AdminUpload() {
     if (form.statut) fd.set('statut', form.statut);
     if (form.resume) fd.set('resume', form.resume);
 
-    // fichier
+    // fichier PDF
     fd.set('pdf', file);
 
     const res = await fetch(`${API}/admin/actes`, {
@@ -150,7 +226,7 @@ export default function AdminUpload() {
     setMsg('Acte créé (id=' + data.id + ')');
     setSubmitting(false);
 
-    // reset léger du formulaire + fichier
+    // reset complet du formulaire après succès
     setForm({
       titre: '',
       type: '',
@@ -186,6 +262,7 @@ export default function AdminUpload() {
           <h1 className="u-title">Dépôt d’un acte</h1>
 
           <form onSubmit={submit} className="u-form">
+            {/* Titre */}
             <div className="u-field">
               <label htmlFor="titre">Titre</label>
               <input
@@ -197,7 +274,7 @@ export default function AdminUpload() {
               />
             </div>
 
-            {/* Type (select + Autre…) */}
+            {/* Type d'acte */}
             <div className="u-field">
               <label htmlFor="type">Type d’acte</label>
               {!useCustomType ? (
@@ -230,14 +307,18 @@ export default function AdminUpload() {
                     value={customType}
                     onChange={(e) => setCustomType(e.target.value)}
                   />
-                  <button type="button" className="u-btn" onClick={() => setUseCustomType(false)}>
+                  <button
+                    type="button"
+                    className="u-btn"
+                    onClick={() => setUseCustomType(false)}
+                  >
                     Utiliser la liste
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Service (select + Autre…) */}
+            {/* Service */}
             <div className="u-field">
               <label htmlFor="service">Service</label>
               {!useCustomService ? (
@@ -270,13 +351,18 @@ export default function AdminUpload() {
                     value={customService}
                     onChange={(e) => setCustomService(e.target.value)}
                   />
-                  <button type="button" className="u-btn" onClick={() => setUseCustomService(false)}>
+                  <button
+                    type="button"
+                    className="u-btn"
+                    onClick={() => setUseCustomService(false)}
+                  >
                     Utiliser la liste
                   </button>
                 </div>
               )}
             </div>
 
+            {/* Date signature */}
             <div className="u-field">
               <label htmlFor="datesig">Date de signature</label>
               <input
@@ -286,8 +372,10 @@ export default function AdminUpload() {
                 value={form.date_signature}
                 onChange={(e) => setForm({ ...form, date_signature: e.target.value })}
               />
+              {analyzing && <small className="u-note">Analyse en cours…</small>}
             </div>
 
+            {/* Date publication */}
             <div className="u-field">
               <label htmlFor="datepub">Date de publication</label>
               <input
@@ -299,6 +387,7 @@ export default function AdminUpload() {
               />
             </div>
 
+            {/* Statut */}
             <div className="u-field">
               <label htmlFor="statut">Statut</label>
               <input
@@ -309,6 +398,7 @@ export default function AdminUpload() {
               />
             </div>
 
+            {/* Résumé */}
             <div className="u-field">
               <label htmlFor="resume">Résumé</label>
               <textarea
@@ -320,6 +410,7 @@ export default function AdminUpload() {
               />
             </div>
 
+            {/* Fichier PDF */}
             <div className="u-field">
               <label htmlFor="pdf">PDF</label>
               <input
@@ -328,10 +419,9 @@ export default function AdminUpload() {
                 type="file"
                 accept="application/pdf"
                 className="u-input u-file"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
                 required
               />
-              {/* Lien de prévisualisation cliquable + bouton retirer */}
               {file && (
                 <div className="u-filemeta">
                   {file.name} •{' '}
@@ -357,6 +447,7 @@ export default function AdminUpload() {
                   </a>
                 </div>
               )}
+              {analyzing && <div className="u-note">Extraction automatique des métadonnées…</div>}
             </div>
 
             <button type="submit" className="u-btn" disabled={submitting}>
@@ -368,7 +459,7 @@ export default function AdminUpload() {
         </div>
       </div>
 
-      {/* Modale d’aperçu PDF avec PDFViewer (uniformisé) */}
+      {/* Modale d’aperçu PDF */}
       {showPreview && previewUrl && (
         <div
           onClick={() => setShowPreview(false)}
@@ -390,8 +481,9 @@ export default function AdminUpload() {
                 Fermer
               </button>
             </div>
+
             <div style={{ width: '100%', height: 'calc(100% - 44px)' }}>
-              <PDFViewer url={previewUrl} />
+              <PDFViewer file={file} url={previewUrl || undefined} />
             </div>
           </div>
         </div>

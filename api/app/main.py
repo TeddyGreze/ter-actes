@@ -4,18 +4,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 
-from .database import Base, engine, SessionLocal  # <-- SessionLocal pour le seed
+from .database import Base, engine, SessionLocal  # SessionLocal pour seed + SQL brut
 from .config import settings
 from .routers_actes import router as actes_router
 from .routers_admin import router as admin_router
-from .routers_refs import router as refs_router     # <-- NEW
-from .models_refs import ActType, Service           # <-- NEW
+from .routers_refs import router as refs_router
+from .models_refs import ActType, Service
 
 # Assets Swagger UI locaux
 from swagger_ui_bundle import swagger_ui_3_path
 
 import os
 from pathlib import Path
+from sqlalchemy import text  # <-- pour exécuter du SQL brut
+
 
 app = FastAPI(
     title="TER Actes API",
@@ -53,6 +55,7 @@ async def security_headers(request: Request, call_next):
     )
     return resp
 
+
 # --- Seed des référentiels (types/services) ---
 def seed_reference_data():
     """Insère quelques valeurs par défaut si tables vides."""
@@ -73,21 +76,43 @@ def seed_reference_data():
             ])
         db.commit()
 
+
+# --- Migration auto "maison" pour ajouter la colonne fulltext_content ---
+def _ensure_fulltext_column():
+    """
+    On s'assure que la colonne actes.fulltext_content existe.
+    Si elle n'existe pas, on l'ajoute.
+    Pas besoin d'intervenir manuellement dans Postgres 🙂
+    """
+    ddl = text("""
+        ALTER TABLE actes
+        ADD COLUMN IF NOT EXISTS fulltext_content TEXT;
+    """)
+    with engine.begin() as conn:
+        conn.execute(ddl)
+
+
 # --- DB init + création des répertoires de stockage ---
 @app.on_event("startup")
 def on_startup():
-    # 1) schéma DB (crée aussi les nouvelles tables act_type/service)
+    # 1) crée les tables connues par SQLAlchemy si elles n'existent pas encore
     Base.metadata.create_all(bind=engine)
 
-    # 2) seed référentiels si vides
+    # 2) applique notre "migration légère" : ajoute la colonne fulltext_content si besoin
+    try:
+        _ensure_fulltext_column()
+        print("[startup] Colonne fulltext_content OK")
+    except Exception as e:
+        print(f"[startup][WARN] Impossible d'ajouter/valider fulltext_content: {e}")
+
+    # 3) seed référentiels si vides
     try:
         seed_reference_data()
         print("[startup] Référentiels types/services OK")
     except Exception as e:
         print(f"[startup][WARN] Seed référentiels: {e}")
 
-    # 3) dossiers de données (ex: /data/uploads)
-    #    - on privilégie settings.UPLOAD_DIR si présent, sinon variable d'env, sinon valeur par défaut.
+    # 4) dossiers de données (ex: /data/uploads)
     upload_dir = getattr(settings, "UPLOAD_DIR", None) or os.getenv("UPLOAD_DIR", "/data/uploads")
     try:
         p = Path(upload_dir)
@@ -104,13 +129,14 @@ def on_startup():
             print(f"[startup][WARN] Pas d'accès en écriture sur '{upload_dir}': {e}")
 
     except Exception as e:
-        # On ne bloque pas le démarrage, mais on log un warning
         print(f"[startup][WARN] Impossible de créer le dossier d'upload '{upload_dir}': {e}")
+
 
 # --- Routes ---
 app.include_router(actes_router, prefix="")
 app.include_router(admin_router, prefix="")
-app.include_router(refs_router, prefix="")  # <-- endpoints /admin/types et /admin/services
+app.include_router(refs_router, prefix="")  # /admin/types /admin/services pour le front
+
 
 # --- Swagger UI servi en local (évite la page blanche) ---
 app.mount("/static", StaticFiles(directory=swagger_ui_3_path), name="static")
