@@ -442,16 +442,6 @@ export default function EditActePage() {
               {analyzing && <div className="u-note">Extraction automatique des métadonnées…</div>}
             </div>
 
-            <div className="u-field">
-              <label htmlFor="statut2">Statut (rappel)</label>
-              <input
-                id="statut2"
-                className="u-input"
-                value={a.statut || ''}
-                onChange={(e) => setA({ ...a, statut: e.target.value })}
-              />
-            </div>
-
             <button type="submit" className="u-btn" disabled={saving}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
