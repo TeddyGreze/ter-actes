@@ -1,12 +1,12 @@
 /* ---------- Variables & base ---------- */
 :root{
-  --bg:#f7fafc;            
-  --fg:#0f172a;            
-  --muted:#475569;         
-  --border:#e2e8f0;        
-  --brand:#078d9a;   
-  --brand-600:#067883; 
-  --brand-700:#056a74; 
+  --bg:#f7fafc;
+  --fg:#0f172a;
+  --muted:#475569;
+  --border:#e2e8f0;
+  --brand:#078d9a;
+  --brand-600:#067883;
+  --brand-700:#056a74;
 }
 
 html,body{height:100%}
@@ -29,6 +29,23 @@ body{
   font-weight:700;
   letter-spacing:.2px;
   margin:0;
+}
+
+/* Petit header description en haut de page */
+.recueil-head{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:.75rem;
+  margin-bottom:16px;
+}
+
+.recueil-info{
+  font-size:.9rem;
+  line-height:1.4;
+  color:#475569;
+  margin:4px 0 0 0;
 }
 
 /* ---------- Barre de filtres ---------- */
@@ -58,12 +75,19 @@ body{
   color:#334155;
   margin-bottom:6px;
 }
+
+/* champs (recherche, type, service, dates, ET champ recherche avancée) */
 .raa-input{
   width:100%;
   border:1px solid #cbd5e1;
   background:#fff;
   border-radius:8px;
-  padding:10px 12px;
+
+  height:40px;
+  padding:0 12px;
+  line-height:1.2;
+  font-size:.9rem;
+
   outline:none;
   transition:border .15s, box-shadow .15s;
 }
@@ -83,9 +107,19 @@ body{
   font-weight:600;
   cursor:pointer;
   box-shadow:0 1px 2px rgba(0,0,0,.06);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:.5rem;
+  line-height:1.2;
+  font-size:.9rem;
 }
 .raa-btn:hover{ background:var(--brand-600); }
 .raa-btn:focus{ outline:3px solid color-mix(in oklab, var(--brand) 30%, transparent); }
+.raa-btn[disabled]{
+  opacity:.5;
+  cursor:default;
+}
 
 /* ===== Pagination pill ===== */
 .raa-pager-pill {
@@ -98,9 +132,9 @@ body{
   display: grid;
   grid-auto-flow: column;
   align-items: stretch;
-  border: 1px solid #7c6a3d;            
-  border-radius: 999px;                  
-  overflow: hidden;                      
+  border: 1px solid #7c6a3d;
+  border-radius: 999px;
+  overflow: hidden;
   background: #fff;
   box-shadow: 0 1px 2px rgba(0,0,0,.05);
 }
@@ -135,7 +169,7 @@ body{
 }
 
 .raa-pill .raa-count {
-  background: var(--brand-600);    
+  background: var(--brand-600);
   color: #fff;
   text-align: center;
 }
@@ -174,11 +208,15 @@ body{
   user-select:none;
 }
 .raa-th{
-  display:flex; align-items:center; gap:6px;
+  display:flex;
+  align-items:center;
+  gap:6px;
   cursor:pointer;
 }
 .raa-th .sort{
-  font-size:12px; color:#64748b; opacity:.9;
+  font-size:12px;
+  color:#64748b;
+  opacity:.9;
 }
 .raa-th.active{ color:var(--brand); }
 .raa-th.active .sort{ color:var(--brand); }
@@ -186,55 +224,100 @@ body{
 /* cellules */
 .raa-cell{ min-width:0; }
 .raa-name{
-  display:flex; flex-direction:column; gap:4px; min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
 }
 .raa-name .title{
-  font-weight:700; color:#0f172a;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-weight:700;
+  color:#0f172a;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 .raa-meta{
-  font-size:13px; color:var(--muted);
+  font-size:13px;
+  color:var(--muted);
 }
 
 /* lien ouvrir */
 .raa-open{
-  color:var(--brand); text-decoration:none; font-weight:600; font-size:14px;
+  color:var(--brand);
+  text-decoration:none;
+  font-weight:600;
+  font-size:14px;
 }
 .raa-open:hover{ text-decoration:underline; }
 
 /* ------ sélection multiple / barre d’actions ------ */
 .raa-bulk{
-  display:flex; gap:10px; align-items:center;
-  margin-top:12px; margin-bottom:8px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin-top:12px;
+  margin-bottom:8px;
 }
 .raa-btn-outline{
-  height:40px; padding:0 14px; border-radius:8px;
-  background:#fff; color:#0f172a; border:1px solid #cbd5e1;
-  font-weight:600; cursor:pointer;
+  height:40px;
+  padding:0 14px;
+  border-radius:8px;
+  background:#fff;
+  color:#0f172a;
+  border:1px solid #cbd5e1;
+  font-weight:600;
+  cursor:pointer;
+  font-size:.9rem;
+  line-height:1.2;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
 }
 .raa-btn-outline:hover{ background:#f8fafc; }
 
-/* colonnes étroites */
-.raa-col-check{ display:flex; align-items:center; justify-content:center; }
-.raa-col-dl{ display:flex; align-items:center; justify-content:center; }
+.raa-col-check{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.raa-col-dl{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
 
 /* checkbox simple (native) */
-.raa-check{ width:18px; height:18px; cursor:pointer; }
+.raa-check{
+  width:18px;
+  height:18px;
+  cursor:pointer;
+}
 
 /* bouton icône download */
 .raa-iconbtn{
-  width:50px; height:35px; line-height:32px;
-  display:inline-flex; align-items:center; justify-content:center;
-  border:0px solid; background:#fff; border-radius:8px; cursor:pointer;
-  font-size:22px; font-weight: 600;
+  width:50px;
+  height:35px;
+  line-height:32px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:0px solid;
+  background:#fff;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:22px;
+  font-weight:600;
 }
-.raa-iconbtn:hover{ 
+.raa-iconbtn:hover{
   color:var(--brand);
   border:1px solid;
 }
-.raa-date-mobile{ display:none; }
 
-/* --- Tablette : Check | Nom | Publication | DL (cache Type/Service) --- */
+.raa-date-mobile{
+  display:none;
+}
+
+/* --- Tablette --- */
 @media (max-width: 920px) and (min-width: 521px){
   .raa-wrap{ padding-left: 15px; padding-right: 33px; }
   .raa-row{
@@ -242,18 +325,29 @@ body{
   }
   .raa-col-type, .raa-col-service{ display:none; }
   .raa-col-dl{ display:flex; }
-  .raa-iconbtn{ color:var(--brand); border:1px solid; }
+  .raa-iconbtn{
+    color:var(--brand);
+    border:1px solid;
+  }
 }
 
-/* --- Téléphone : Nom | DL ; date sous le nom ; --- */
+/* --- Téléphone --- */
 @media (max-width: 520px){
   .raa-row{
-    grid-template-columns: 40px 1fr 35px; align-items: flex-start;
+    grid-template-columns: 40px 1fr 35px;
+    align-items: flex-start;
   }
-  .raa-col-date, .raa-col-type, .raa-col-service{ display:none; }
+  .raa-col-date,
+  .raa-col-type,
+  .raa-col-service{
+    display:none;
+  }
   .raa-col-dl{ display:flex; }
-  .raa-date-mobile{ display:block; } 
-  .raa-iconbtn{ color:var(--brand); border:1px solid; }
+  .raa-date-mobile{ display:block; }
+  .raa-iconbtn{
+    color:var(--brand);
+    border:1px solid;
+  }
 }
 
 
@@ -275,4 +369,138 @@ body{
 @keyframes skel{
   0%{background-position:200% 0}
   100%{background-position:-200% 0}
+}
+
+
+/* ===========================================================
+    Recherche avancée (plein texte OCR) - INLINE
+   =========================================================== */
+
+.adv-wrapper{
+  margin-top:16px;
+  margin-bottom:16px;
+}
+
+/* ligne globale qui contient :
+   - bouton "Recherche avancée"
+   - bouton "Réinitialiser"
+   - bloc du formulaire (replié ou ouvert)
+*/
+.adv-inline-row{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  gap:12px;
+}
+
+.adv-chevron{
+  font-size:.8rem;
+  line-height:1;
+}
+
+/* bouton Réinitialiser à côté */
+.adv-reset-inline{
+  height:40px;
+  padding:0 .75rem;
+  font-size:.8rem;
+  line-height:1.2;
+  border-radius:8px;
+  background:#fff;
+  border:1px solid #cbd5e1;
+  font-weight:600;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.adv-reset-inline:hover{
+  background:#f8fafc;
+}
+
+/* -------- animation du bloc de recherche avancée -------- */
+
+/* conteneur qui s'ouvre/se ferme en animation */
+.adv-inline-formwrap{
+  flex:1 1 auto;
+  overflow:hidden;
+
+  /* fermé par défaut */
+  max-width:0;
+  max-height:0;
+  opacity:0;
+  transform:translateY(-4px);
+  transition:
+    max-width .22s ease,
+    max-height .22s ease,
+    opacity .22s ease,
+    transform .22s ease;
+}
+
+/* quand open === true => on ajoute .is-open */
+.adv-inline-formwrap.is-open{
+  max-width:1000px;     /* assez grand pour desktop */
+  max-height:200px;     /* assez grand pour mobile */
+  opacity:1;
+  transform:translateY(0);
+}
+
+/* le formulaire interne */
+.adv-inline-form{
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:flex-end;
+  gap:.5rem;
+  flex:1;
+  min-width:260px;
+}
+
+/* champ texte avancé */
+.adv-inline-input{
+  flex:1;
+  min-width:260px;
+}
+
+/* bouton envoyer du formulaire avancé */
+.adv-inline-submit{
+  white-space:nowrap;
+}
+
+/* message d'erreur éventuel */
+.adv-error{
+  flex-basis:100%;
+  font-size:.9rem;
+  margin:4px 0 0 0;
+  color:#b91c1c;
+}
+
+/* --- responsive mobile pour le bloc avancé --- */
+@media (max-width:520px){
+
+  .adv-inline-row{
+    align-items:stretch;
+  }
+
+  /* Sur mobile, le bloc prend la ligne entière quand ouvert.
+     Fermé = max-height:0 donc invisible visuellement */
+  .adv-inline-formwrap{
+    flex-basis:100%;
+    max-width:100%;
+  }
+  .adv-inline-formwrap.is-open{
+    max-width:100%;
+  }
+
+  .adv-inline-form{
+    flex-basis:100%;
+    flex-wrap:wrap;
+  }
+
+  .adv-inline-input{
+    flex:1;
+    min-width:0;
+  }
+
+  .adv-inline-submit{
+    flex-shrink:0;
+  }
 }
