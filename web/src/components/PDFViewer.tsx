@@ -336,7 +336,7 @@ export default function PDFViewer({
             className="pdfbtn"
             onClick={prev}
             disabled={page <= 1}
-            aria-label="Page précédente"
+            title="Page précédente"
           >
             ‹
           </button>
@@ -344,7 +344,7 @@ export default function PDFViewer({
             className="pdfbtn"
             onClick={next}
             disabled={page >= numPages}
-            aria-label="Page suivante"
+            title="Page suivante"
           >
             ›
           </button>
@@ -354,6 +354,7 @@ export default function PDFViewer({
             <input
               className="pdfpage-input"
               type="number"
+              title="Champ numéro de page"
               min={1}
               max={numPages}
               value={page}
