@@ -19,7 +19,7 @@ body{
 /* ---------- Layout ---------- */
 .admin-wrap{
   padding:24px;
-  max-width:1100px;
+  max-width:960px;
   margin:0 auto;
 }
 .admin-title{
@@ -176,7 +176,7 @@ body{
 /*  ====================== Responsive ======================= */
 @media (max-width: 900px){
   .admin-filters{ row-gap:12px; grid-template-columns: 1fr 1fr; }
-  .admin-wrap{ padding-left: 15px; padding-right: 33px; }
+  .f-field { margin-right:25px;}
   .t-row{ grid-template-columns: 1fr 150px 200px; }
   .t-row .t-cell:nth-child(3),
   .t-row .t-cell:nth-child(4){ display:none; }
@@ -188,11 +188,11 @@ body{
 /* ================= Téléphone uniquement ================= */
 @media (max-width: 520px){
   .admin-filters{ grid-template-columns: 1fr; }
+  .btn-primary{ padding:0 8px}
   .t-row{ grid-template-columns: 1fr auto; }
   .t-row .t-cell:nth-child(2){ display:none; }
   .t-head .t-cell:nth-child(2){ display:none; }
 
-  /* Aligner le titre "Actions" à gauche sur mobile */
   .t-head .t-actions{
     display:block !important;
     text-align:left !important;
@@ -209,7 +209,6 @@ body{
     font-size:13px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
 
-  /* ✅ Actions en colonne sur mobile */
   .t-row:not(.t-head) .t-actions{
     display:flex !important;
     flex-direction:column;

@@ -19,7 +19,7 @@ body{
 
 /* ---------- Layout ---------- */
 .raa-wrap{
-  padding:24px;
+  padding:20px;
   max-width:980px;
   margin:0 auto;
 }
@@ -38,18 +38,6 @@ body{
   grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
   align-items:end;
   margin-top:16px;
-}
-
-@media (max-width: 900px){
-  .raa-filters{
-    row-gap: 12px;
-    grid-template-columns: 1fr 1fr;
-  }
-}
-@media (max-width: 520px){
-  .raa-filters{
-    grid-template-columns: 1fr;
-  }
 }
 
 .raa-field label{
@@ -234,22 +222,33 @@ body{
 }
 .raa-date-mobile{ display:none; }
 
-/* --- Tablette : Check | Nom | Publication | DL (cache Type/Service) --- */
-@media (max-width: 920px) and (min-width: 521px){
-  .raa-wrap{ padding-left: 15px; padding-right: 33px; }
-  .raa-row{
-    grid-template-columns: 40px 1fr 150px 72px;
-  }
+.raa-row:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--brand) 70%, transparent);
+  background: #f8fafc;
+}
+.raa-row[aria-selected="true"] {
+  background: color-mix(in oklab, var(--brand) 6%, #fff);
+}
+.raa-row[aria-selected="true"]:focus {
+  box-shadow: inset 0 0 0 2px var(--brand-600);
+}
+
+
+/* --- Tablette : Check | Nom | Publication | DL --- */
+@media (max-width: 920px){
+  .raa-row{ grid-template-columns: 40px 1fr 150px 72px; }
+  .raa-filters{ row-gap: 12px; grid-template-columns: 1fr 1fr; }
+  .raa-field{ margin-right: 25px; }
   .raa-col-type, .raa-col-service{ display:none; }
   .raa-col-dl{ display:flex; }
   .raa-iconbtn{ color:var(--brand); border:1px solid; }
 }
 
-/* --- Téléphone : Nom | DL ; date sous le nom ; --- */
+/* --- Téléphone : Nom | DL ; --- */
 @media (max-width: 520px){
-  .raa-row{
-    grid-template-columns: 40px 1fr 35px; align-items: flex-start;
-  }
+  .raa-row{ grid-template-columns: 40px 1fr 35px; align-items: flex-start; }
+  .raa-filters{ grid-template-columns: 1fr; }
   .raa-col-date, .raa-col-type, .raa-col-service{ display:none; }
   .raa-col-dl{ display:flex; }
   .raa-date-mobile{ display:block; } 
