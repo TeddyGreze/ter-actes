@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import './styles/raa.css'
 import { Skeleton } from '../components/Skeleton'
@@ -24,14 +24,6 @@ type SortDir = 'asc' | 'desc'
 /** Normalise : minuscules + sans accents */
 const norm = (s?: string) =>
   (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-
-/** Nomme gentiment un fichier */
-const safeFileName = (s: string, fallback: string) =>
-  (s || fallback)
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9_\-\.]+/gi, '_')
-    .replace(/_+/g, '_')
-    .slice(0, 120)
 
 export default function HomePage() {
   // Filtres
@@ -161,23 +153,39 @@ export default function HomePage() {
   // ---- Téléchargements ----
   const downloadOne = async (a: Acte) => {
     try {
-      const res = await fetch(`${API}/actes/${a.id}/pdf`, { credentials: 'include' })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const aTag = document.createElement('a')
-      const base = safeFileName(a.titre, `acte_${a.id}`)
-      aTag.href = url
-      aTag.download = `${base}.pdf`
-      document.body.appendChild(aTag)
-      aTag.click()
-      aTag.remove()
-      URL.revokeObjectURL(url)
+      const res = await fetch(`${API}/actes/${a.id}/pdf`, { credentials: 'include' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      // Nom de fichier depuis Content-Disposition (ou pdf_path en fallback)
+      let filename: string | undefined;
+      const cd = res.headers.get('content-disposition') || '';
+      const m = cd.match(/filename\*?=(?:UTF-8''|")?([^\";]+)/i);
+      if (m?.[1]) {
+        try { filename = decodeURIComponent(m[1]); } catch { filename = m[1]; }
+      }
+      if (!filename && a.pdf_path) {
+        const seg = a.pdf_path.split(/[\\/]/).pop();
+        if (seg && seg.toLowerCase().endsWith('.pdf')) filename = seg;
+        else if (seg) filename = `${seg}.pdf`;
+      }
+      if (!filename) filename = `acte_${a.id}.pdf`;
+      const safe = (filename.replace(/[\/\\:\*\?"<>\|\x00-\x1F]/g, '').trim() || `acte_${a.id}.pdf`)
+      const finalName = safe.toLowerCase().endsWith('.pdf') ? safe : `${safe}.pdf`
+
+      const aTag = document.createElement('a');
+      aTag.href = url;
+      aTag.download = finalName;
+      document.body.appendChild(aTag);
+      aTag.click();
+      aTag.remove();
+      URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('download failed', err)
-      alert("Téléchargement impossible pour cet acte.")
+      console.error('download failed', err);
+      alert('Téléchargement impossible pour cet acte.');
     }
-  }
+  };
 
   const bulkDownload = async () => {
     const map = new Map<number, Acte>()
@@ -194,6 +202,81 @@ export default function HomePage() {
   const allDisplayedSelected =
     displayItems.length > 0 && displayItems.every(a => selected.has(a.id))
 
+  // ============ NAVIGATION CLAVIER (roving tabindex) ============
+  const rowRefs = useRef<Array<HTMLDivElement | null>>([])
+  const [activeIndex, setActiveIndex] = useState<number>(0)
+
+  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
+
+  useEffect(() => {
+    // Maintenir un index actif valide lorsque la liste change
+    setActiveIndex(i => clamp(i, 0, Math.max(0, displayItems.length - 1)))
+  }, [displayItems.length])
+
+  useEffect(() => {
+    const el = rowRefs.current[activeIndex]
+    if (el) el.focus()
+  }, [activeIndex])
+
+  const focusRow = useCallback((i: number) => {
+    setActiveIndex(clamp(i, 0, Math.max(0, displayItems.length - 1)))
+  }, [displayItems.length])
+
+  const openRow = useCallback((i: number) => {
+    const it = displayItems[i]
+    if (!it) return
+    window.location.assign(`/acte/${it.id}`)
+  }, [displayItems])
+
+  const toggleRow = useCallback((i: number) => {
+    const it = displayItems[i]
+    if (!it) return
+    toggleOne(it.id)
+  }, [displayItems])
+
+  const downloadRow = useCallback((i: number) => {
+    const it = displayItems[i]
+    if (!it) return
+    downloadOne(it)
+  }, [displayItems])
+
+  const onRowKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
+    const maxI = displayItems.length - 1
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault(); focusRow(index + 1); break
+      case 'ArrowUp':
+        e.preventDefault(); focusRow(index - 1); break
+      case 'Home':
+        e.preventDefault(); focusRow(0); break
+      case 'End':
+        e.preventDefault(); focusRow(maxI); break
+      case 'PageDown':
+        e.preventDefault(); focusRow(index + 5); break
+      case 'PageUp':
+        e.preventDefault(); focusRow(index - 5); break
+      case ' ':
+        e.preventDefault(); toggleRow(index); break
+      case 'Enter':
+        e.preventDefault(); openRow(index); break
+      case 'd':
+      case 'D':
+        e.preventDefault(); downloadRow(index); break
+      default:
+        if ((e.key === 'a' || e.key === 'A') && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault()
+          selectAllDisplayed(true, displayItems)
+        }
+    }
+  }, [displayItems, focusRow, toggleRow, openRow, downloadRow, selectAllDisplayed])
+
+  const onHeadKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault(); focusRow(0)
+    }
+  }
+  // =============================================================
+
   return (
     <main className="raa-wrap">
       <h1 className="raa-title">Recueil des actes</h1>
@@ -202,39 +285,48 @@ export default function HomePage() {
       <div className="raa-filters">
         <div className="raa-field">
           <label htmlFor="q">Recherche</label>
-          <input id="q" value={q} onChange={e => setQ(e.target.value)} placeholder="Mots-clés..." className="raa-input"/>
+          <input id="q" title="Champ Recherche" value={q} onChange={e => setQ(e.target.value)} placeholder="Mots-clés..." className="raa-input"/>
         </div>
         <div className="raa-field">
           <label htmlFor="type">Type</label>
-          <input id="type" value={type} onChange={e => setType(e.target.value)} placeholder="Arrêté, Délibération..." className="raa-input"/>
+          <input id="type" title="Champ Type" value={type} onChange={e => setType(e.target.value)} placeholder="Arrêté, Délibération..." className="raa-input"/>
         </div>
         <div className="raa-field">
           <label htmlFor="service">Service</label>
-          <input id="service" value={service} onChange={e => setService(e.target.value)} placeholder="Voirie, Culture..." className="raa-input"/>
+          <input id="service" title="Champ Service" value={service} onChange={e => setService(e.target.value)} placeholder="Voirie, Culture..." className="raa-input"/>
         </div>
         <div className="raa-field">
           <label htmlFor="dateMin">Date min</label>
-          <input id="dateMin" type="date" value={dateMin} onChange={e => setDateMin(e.target.value)} className="raa-input"/>
+          <input id="dateMin" title="Champ Date minimum" type="date" value={dateMin} onChange={e => setDateMin(e.target.value)} className="raa-input"/>
         </div>
         <div className="raa-field">
           <label htmlFor="dateMax">Date max</label>
-          <input id="dateMax" type="date" value={dateMax} onChange={e => setDateMax(e.target.value)} className="raa-input"/>
+          <input id="dateMax" title="Champ Date maximum" type="date" value={dateMax} onChange={e => setDateMax(e.target.value)} className="raa-input"/>
         </div>
         <button onClick={() => search(1)} title="Rechercher" className="raa-btn">Rechercher</button>
       </div>
+
+      <p className="sr" role="status" aria-live="polite">
+        {loading ? 'Recherche en cours…' : `${displayItems.length} résultat(s) affiché(s)`}
+      </p>
 
       {/* Barre d’actions sélection */}
       {selectedCount >= 2 && (
         <div className="raa-bulk">
           <span>{selectedCount} sélectionnés</span>
-          <button className="raa-btn" onClick={bulkDownload} title="Télécharger les PDF sélectionnés">⭳ Télécharger</button>
+          <button className="raa-btn" onClick={bulkDownload} title="Télécharger les actes sélectionnés">⭳ Télécharger</button>
           <button className="raa-btn-outline" onClick={clearSelection} title="Réinitialiser la sélection">Réinitialiser</button>
         </div>
       )}
 
       {/* Tableau */}
       <div className="raa-table" role="table" aria-label="Liste des actes">
-        <div className="raa-row raa-head" role="row">
+        <div
+          className="raa-row raa-head"
+          role="row"
+          tabIndex={0}
+          onKeyDown={onHeadKeyDown}
+        >
           {/* Sélecteur tout */}
           <div className="raa-cell raa-th raa-col-check" role="columnheader" title="Sélectionner tout">
             <input
@@ -248,9 +340,11 @@ export default function HomePage() {
 
           <div
             className={`raa-cell raa-th ${sortKey === 'titre' ? 'active' : ''}`}
-            role="columnheader" tabIndex={0}
-            onClick={() => toggleSort('titre')}
+            role="columnheader"
             title="Trier par nom"
+            aria-sort={sortKey === 'titre' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+            tabIndex={0}
+            onClick={() => toggleSort('titre')}
             onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleSort('titre')}
           >
             <span>Nom</span> <span className="sort">{sortArrow('titre')}</span>
@@ -258,9 +352,11 @@ export default function HomePage() {
 
           <div
             className={`raa-cell raa-th raa-col-date ${sortKey === 'date_publication' ? 'active' : ''}`}
-            role="columnheader" tabIndex={0}
-            onClick={() => toggleSort('date_publication')}
+            role="columnheader"
             title="Trier par date de publication"
+            aria-sort={sortKey === 'date_publication' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+            tabIndex={0}
+            onClick={() => toggleSort('date_publication')}
             onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleSort('date_publication')}
           >
             <span>Publication</span> <span className="sort">{sortArrow('date_publication')}</span>
@@ -268,9 +364,11 @@ export default function HomePage() {
 
           <div
             className={`raa-cell raa-th raa-col-type ${sortKey === 'type' ? 'active' : ''}`}
-            role="columnheader" tabIndex={0}
-            onClick={() => toggleSort('type')}
+            role="columnheader"
             title="Trier par type"
+            aria-sort={sortKey === 'type' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+            tabIndex={0}
+            onClick={() => toggleSort('type')}
             onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleSort('type')}
           >
             <span>Type</span> <span className="sort">{sortArrow('type')}</span>
@@ -278,17 +376,18 @@ export default function HomePage() {
 
           <div
             className={`raa-cell raa-th raa-col-service ${sortKey === 'service' ? 'active' : ''}`}
-            role="columnheader" tabIndex={0}
-            onClick={() => toggleSort('service')}
+            role="columnheader"
             title="Trier par service"
+            aria-sort={sortKey === 'service' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+            tabIndex={0}
+            onClick={() => toggleSort('service')}
             onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleSort('service')}
           >
             <span>Service</span> <span className="sort">{sortArrow('service')}</span>
           </div>
 
           {/* Colonne Download */}
-          <div className="raa-cell raa-th raa-col-dl" role="columnheader" aria-label="Télécharger un acte">
-          </div>
+          <div className="raa-cell raa-th raa-col-dl" role="columnheader" aria-label="Télécharger un acte" />
         </div>
 
         {loading ? (
@@ -303,16 +402,27 @@ export default function HomePage() {
             </div>
           ))
         ) : (
-          displayItems.map(it => {
+          displayItems.map((it, i) => {
             const date = it.date_publication || it.created_at
             return (
-              <div key={it.id} className="raa-row" role="row">
+              <div
+                key={it.id}
+                className="raa-row"
+                role="row"
+                tabIndex={i === activeIndex ? 0 : -1}
+                ref={(el: HTMLDivElement | null) => {
+                  rowRefs.current[i] = el;
+                }}
+                onKeyDown={(e) => onRowKeyDown(e, i)}
+                aria-selected={isSelected(it.id) ? 'true' : 'false'}
+                aria-rowindex={i + 2} // +1 header, +1 car index 1-based
+              >
                 {/* checkbox */}
                 <div className="raa-cell raa-col-check" role="cell">
                   <input
+                    title="Sélectionner l'acte"
                     type="checkbox"
                     className="raa-check"
-                    aria-label={`Sélectionner ${it.titre}`}
                     checked={isSelected(it.id)}
                     onChange={() => toggleOne(it.id)}
                   />
@@ -356,13 +466,13 @@ export default function HomePage() {
       {/* Pagination */}
       <nav className="raa-pager-pill" aria-label="Pagination">
         <div className="raa-pill" role="group">
-          <button type="button" onClick={() => page > 1 && search(1)} disabled={page <= 1} aria-label="Première page" title="Première page">««</button>
-          <button type="button" onClick={() => page > 1 && search(page - 1)} disabled={page <= 1} aria-label="Page précédente" title="Page précédente">‹</button>
+          <button type="button" onClick={() => page > 1 && search(1)} disabled={page <= 1} title="Première page">««</button>
+          <button type="button" onClick={() => page > 1 && search(page - 1)} disabled={page <= 1} title="Page précédente">‹</button>
           <span className="raa-count" aria-live="polite">
             {typeof totalPages === 'number' ? `${page} / ${totalPages}` : `Page ${page}`}
           </span>
-          <button type="button" onClick={() => hasNext && search(page + 1)} disabled={!hasNext} aria-label="Page suivante" title="Page suivante">›</button>
-          <button type="button" onClick={() => typeof totalPages === 'number' && page !== totalPages && search(totalPages)} disabled={typeof totalPages !== 'number' || page === totalPages} aria-label="Dernière page" title="Dernière page">»»</button>
+          <button type="button" onClick={() => hasNext && search(page + 1)} disabled={!hasNext} title="Page suivante">›</button>
+          <button type="button" onClick={() => typeof totalPages === 'number' && page !== totalPages && search(totalPages)} disabled={typeof totalPages !== 'number' || page === totalPages} title="Dernière page">»»</button>
         </div>
       </nav>
     </main>
