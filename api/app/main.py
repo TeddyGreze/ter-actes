@@ -82,7 +82,6 @@ def _ensure_fulltext_column():
     """
     On s'assure que la colonne actes.fulltext_content existe.
     Si elle n'existe pas, on l'ajoute.
-    Pas besoin d'intervenir manuellement dans Postgres 🙂
     """
     ddl = text("""
         ALTER TABLE actes

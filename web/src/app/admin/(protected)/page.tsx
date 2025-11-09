@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import '../../styles/admin.css'
 import { useToast } from '../../../components/Toast'
 import { Skeleton } from '../../../components/Skeleton'
+import AdvancedSearchPanel from '../../../components/AdvancedSearchPanel'
 
 export const dynamic = 'force-dynamic'
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
@@ -54,6 +55,9 @@ export default function AdminDashboard() {
 
   // Pagination
   const [page, setPage] = useState(1)
+
+  // Filtre avancé (OCR plein texte)
+  const [advFilter, setAdvFilter] = useState<{ term: string; ids: number[] } | null>(null)
 
   useEffect(() => {
     const boot = async () => {
@@ -135,7 +139,7 @@ export default function AdminDashboard() {
   const sortArrow = (key: SortKey) =>
     sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : '↕'
 
-  // Filtrage accent/casse + date range + tri
+  // Filtrage accent/casse + date range + filtre avancé + tri
   const displayItems = useMemo(() => {
     const nq = norm(q)
     const nt = norm(type)
@@ -143,7 +147,7 @@ export default function AdminDashboard() {
     const min = dateMin ? new Date(dateMin).getTime() : undefined
     const max = dateMax ? new Date(dateMax).getTime() : undefined
 
-    const filtered = items.filter(a => {
+    let filtered = items.filter(a => {
       if (nq) {
         const hay = norm(`${a.titre} ${a.resume ?? ''} ${a.type ?? ''} ${a.service ?? ''}`)
         if (!hay.includes(nq)) return false
@@ -160,6 +164,14 @@ export default function AdminDashboard() {
       return true
     })
 
+    // ⬇️ Application du filtre avancé OCR
+    if (advFilter && advFilter.ids.length > 0) {
+      const allowed = new Set(advFilter.ids)
+      filtered = filtered.filter(a => allowed.has(a.id))
+    } else if (advFilter && advFilter.ids.length === 0) {
+      filtered = []
+    }
+
     const arr = [...filtered]
     arr.sort((a, b) => {
       const get = (it: Acte, k: SortKey) =>
@@ -171,7 +183,7 @@ export default function AdminDashboard() {
       return 0
     })
     return arr
-  }, [items, q, type, service, dateMin, dateMax, sortKey, sortDir])
+  }, [items, q, type, service, dateMin, dateMax, sortKey, sortDir, advFilter])
 
   const hasPrev = page > 1
   const hasNext = typeof totalPages === 'number' ? page < totalPages : items.length === PAGE_SIZE
@@ -227,6 +239,13 @@ export default function AdminDashboard() {
         </div>
         <button className="btn-primary" onClick={()=>load(1)}>Rechercher</button>
       </div>
+
+      {/* Recherche avancée (plein texte OCR) */}
+      <AdvancedSearchPanel
+        advActive={!!advFilter}
+        onApply={(term, ids) => setAdvFilter({ term, ids })}
+        onReset={() => setAdvFilter(null)}
+      />
 
       {/* Tableau */}
       <div className="admin-table" role="table" aria-label="Actes">

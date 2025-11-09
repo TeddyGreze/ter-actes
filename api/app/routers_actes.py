@@ -55,7 +55,7 @@ def search_fulltext(
     for acte in actes:
         excerpt = None
         if acte.fulltext_content:
-            # essaie de trouver ta chaîne dans le texte pour fabriquer un mini-contexte
+            # essaie de trouver la chaîne dans le texte pour fabriquer un mini-contexte
             m = re.search(re.escape(q), acte.fulltext_content, flags=re.IGNORECASE)
             if m:
                 start = max(0, m.start() - 120)

@@ -320,10 +320,16 @@ body{
 
 /* --- Tablette : Check | Nom | Publication | DL --- */
 @media (max-width: 920px){
-  .raa-wrap{ padding-left: 15px; padding-right: 33px; }
+  /* padding symétrique pour éviter la sensation de décentrage */
+  .raa-wrap{ padding-left: 15px; padding-right: 15px; }
+
   .raa-row{ grid-template-columns: 40px 1fr 150px 72px; }
-  .raa-filters{ row-gap: 12px; grid-template-columns: 1fr 1fr; }
-  .raa-field{ margin-right: 25px; }
+  .raa-filters{ row-gap: 12px; grid-template-columns: 1fr 1fr; width:100%; }
+
+  /* important pour empêcher tout dépassement des champs */
+  .raa-field{ margin-right: 0; min-width:0; }
+  .raa-input{ box-sizing:border-box; max-width:100%; }
+
   .raa-col-type, .raa-col-service{ display:none; }
   .raa-col-dl{ display:flex; }
   .raa-iconbtn{
@@ -335,7 +341,12 @@ body{
 /* --- Téléphone : Nom | DL ; --- */
 @media (max-width: 520px){
   .raa-row{ grid-template-columns: 40px 1fr 35px; align-items: flex-start; }
-  .raa-filters{ grid-template-columns: 1fr; }
+  .raa-filters{ grid-template-columns: 1fr; width:100%; }
+
+  /* idem : pas de dépassement, mêmes largeurs */
+  .raa-field{ min-width:0; }
+  .raa-input{ box-sizing:border-box; max-width:100%; }
+
   .raa-col-date, .raa-col-type, .raa-col-service{ display:none; }
   .raa-col-dl{ display:flex; }
   .raa-date-mobile{ display:block; }

@@ -28,16 +28,10 @@ async function ensureWorker() {
 type FitMode = 'page' | 'none'
 
 type Props = {
-  /**
-   * Cas 1 : PDF distant déjà hébergé (ex: http://localhost:8000/actes/12/pdf)
-   */
+  /** Cas 1 : PDF distant déjà hébergé (ex: http://localhost:8000/actes/12/pdf) */
   url?: string
-
-  /**
-   * Cas 2 : PDF local pas encore upload (File depuis l'<input type="file" />)
-   */
+  /** Cas 2 : PDF local pas encore upload (File depuis l'<input type="file" />) */
   file?: File | Blob | null
-
   height?: number
   initialScale?: number
   fitModeDefault?: FitMode
@@ -68,18 +62,11 @@ export default function PDFViewer({
   const [fitMode, setFit]   = useState<FitMode>(fitModeDefault)
 
   // Annuler un rendu en cours
-  const cancelRender = () => {
-    try { taskRef.current?.cancel() } catch {}
-    taskRef.current = null
-  }
-
+  const cancelRender = () => { try { taskRef.current?.cancel() } catch {} ; taskRef.current = null }
   // Détruire complètement le PDF courant
-  const destroyPdf = () => {
-    try { pdfRef.current?.destroy() } catch {}
-    pdfRef.current = null
-  }
+  const destroyPdf  = () => { try { pdfRef.current?.destroy() } catch {} ; pdfRef.current = null }
 
-  // --------- Rendu d'UNE page sur le <canvas> ---------
+  // --------- Rendu d'UNE page sur le <canvas> (identique ancienne logique) ---------
   const renderPage = useCallback(async () => {
     const pdf    = pdfRef.current
     const canvas = canvasRef.current
@@ -98,15 +85,10 @@ export default function PDFViewer({
     const ctx = canvas.getContext('2d')!
     taskRef.current = p.render({ canvasContext: ctx, viewport: vp })
 
-    try {
-      await taskRef.current.promise
-    } catch {
-      /* ignore cancel errors */
-    }
+    try { await taskRef.current.promise } catch {}
     taskRef.current = null
     renderingRef.current = false
 
-    // si on a demandé de scroller automatiquement (chgt de page via molette)
     if (pendingScroll.current !== null) {
       wrap.scrollTop =
         pendingScroll.current === Number.MAX_SAFE_INTEGER
@@ -116,7 +98,7 @@ export default function PDFViewer({
     }
   }, [scale])
 
-  // --------- Ajuster le zoom pour "tenir dans la zone d'affichage" ---------
+  // --------- Ajuster le zoom pour "tenir dans la zone d'affichage" (identique ancienne) ---------
   const fitPage = useCallback(async () => {
     if (!pdfRef.current || !wrapRef.current) return
     const p = await pdfRef.current.getPage(pageRef.current)
@@ -125,11 +107,7 @@ export default function PDFViewer({
     const w   = wrapRef.current.clientWidth
     const h   = wrapRef.current.clientHeight
 
-    // on calcule le plus grand zoom qui rentre dans (w,h)
-    const s = Math.max(
-      0.25,
-      Math.min(4, Math.min(w / vp1.width, h / vp1.height))
-    )
+    const s = Math.max(0.25, Math.min(4, Math.min(w / vp1.width, h / vp1.height)))
 
     fitRef.current = 'page'
     setFit('page')
@@ -146,7 +124,7 @@ export default function PDFViewer({
   const next = () => goTo(pageRef.current + 1)
 
   // ----------------------------------------------------
-  // Chargement / parsing du PDF quand `url` ou `file` change
+  // Chargement / parsing du PDF (⚠️ dépend seulement de url/file comme l'ancienne)
   // ----------------------------------------------------
   useEffect(() => {
     let cancelled = false
@@ -155,29 +133,20 @@ export default function PDFViewer({
     ;(async () => {
       await ensureWorker()
 
-      // reset rendu en cours + ancien PDF
       cancelRender()
       destroyPdf()
 
-      // On prépare le "loadingTask" pour pdf.js
-      // - si on a un File/Blob local : on lit son ArrayBuffer nous-mêmes
-      //   et on passe { data } -> pas de requête réseau (évite l'erreur Headers)
-      // - sinon on passe { url } pour laisser pdf.js fetcher via HTTP
       let loadingTask: any | null = null
-
       if (file) {
         const buf = await file.arrayBuffer()
         loadingTask = (pdfjsLib as any).getDocument({ data: buf })
       } else if (url) {
         loadingTask = (pdfjsLib as any).getDocument({ url })
       } else {
-        // rien à afficher
         return
       }
 
       const pdf  = await loadingTask.promise
-
-      // si entre temps on a rechargé un autre PDF → on nettoie et on arrête
       if (cancelled || runId !== runRef.current) {
         try { loadingTask.destroy?.() } catch {}
         return
@@ -185,73 +154,49 @@ export default function PDFViewer({
 
       pdfRef.current = pdf
       setNum(pdf.numPages)
-
       pageRef.current = 1
       setPage(1)
 
-      // premier zoom
-      if (fitRef.current === 'page') {
-        await fitPage()
-      } else {
-        setScale(initialScale)
-      }
+      if (fitRef.current === 'page') await fitPage()
+      else setScale(initialScale)
 
-      // premier rendu
       await renderPage()
-    })().catch(err => {
-      console.error('PDF load error:', err)
-    })
+    })().catch(console.error)
 
-    return () => {
-      cancelled = true
-      cancelRender()
-      destroyPdf()
-    }
-  }, [url, file, fitPage, renderPage, initialScale])
+    return () => { cancelled = true; cancelRender(); destroyPdf() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, file]) // ⬅️ important : pas de renderPage/fitPage/initialScale ici
 
-  // Re-render quand la page ou le zoom changent
-  useEffect(() => {
-    renderPage()
-  }, [page, scale, renderPage])
+  // Re-render quand page/zoom changent (identique ancienne)
+  useEffect(() => { renderPage() }, [page, scale, renderPage])
 
-  // Si on est en mode "page", on recalcule le zoom quand la zone de preview est redimensionnée
+  // Refit si on est en mode page (identique ancienne : pas de renderPage ici)
   useEffect(() => {
     if (fitMode !== 'page') return
-    const ro = new ResizeObserver(() => {
-      fitPage().then(() => {
-        // après avoir recalculé le zoom, on rerend la page
-        renderPage()
-      })
-    })
+    const ro = new ResizeObserver(() => fitPage())
+    if (wrapRef.current) ro.observe(wrapRef.current)
+    return () => ro.disconnect()
+  }, [fitMode, fitPage])
 
-    if (wrapRef.current) {
-      ro.observe(wrapRef.current)
-    }
-    return () => {
-      ro.disconnect()
-    }
-  }, [fitMode, fitPage, renderPage])
-
-  // Navigation à la molette :
-  // - Ctrl/⌘ + molette = zoom
-  // - molette en haut/bas du conteneur => page suivante/précédente
+  // Molette : Ctrl/Cmd => zoom ; sinon changement de page aux bords (identique ancienne)
   useEffect(() => {
     const el = wrapRef.current
     if (!el) return
 
     const EDGE = 4
     const onWheel = (e: WheelEvent) => {
-      // zoom avec Ctrl/Maj/Cmd
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault()
-        setFit('none')
-        fitRef.current = 'none'
-        setScale(s => Math.max(0.25, Math.min(4, s * (e.deltaY > 0 ? 0.9 : 1.1))))
+        setFit('none'); fitRef.current = 'none'
+        setScale((s) => {
+          const factor = e.deltaY > 0 ? 0.9 : 1.1
+          return Math.max(0.25, Math.min(4, s * factor))
+        })
         return
       }
 
       if (renderingRef.current) return
-      const atTop = el.scrollTop <= EDGE
+      const atTop    = el.scrollTop <= EDGE
       const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - EDGE
 
       if (e.deltaY > 0 && atBottom && pageRef.current < numPages) {
@@ -270,11 +215,10 @@ export default function PDFViewer({
   }, [numPages])
 
   // ----------------------------------------------------
-  // Télécharger le PDF avec le bon nom
+  // Télécharger le PDF avec le bon nom (inchangé)
   // ----------------------------------------------------
   const downloadPdf = async () => {
     try {
-      // Cas 1 : fichier local pas encore uploadé
       if (file) {
         const blob = file instanceof Blob ? file : new Blob([file])
         const filename = (file as File).name || 'document.pdf'
@@ -289,26 +233,18 @@ export default function PDFViewer({
         return
       }
 
-      // Cas 2 : PDF distant via URL API
       if (!url) return
       const res = await fetch(url, { credentials: 'include' })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
       const blob = await res.blob()
 
-      // essaie de prendre le nom depuis Content-Disposition
       let filename = 'document.pdf'
       const cd = res.headers.get('content-disposition') || ''
-      // ex: inline; filename="Mon_Fichier.pdf"
       const m = cd.match(/filename\*?=(?:UTF-8''|")?([^\";]+)/i)
       if (m?.[1]) {
-        try {
-          filename = decodeURIComponent(m[1])
-        } catch {
-          filename = m[1]
-        }
+        try { filename = decodeURIComponent(m[1]) } catch { filename = m[1] }
       } else {
-        // fallback: dernier segment de l'URL
         const u = new URL(url, window.location.href)
         const last = u.pathname.split('/').filter(Boolean).pop()
         if (last) filename = last.includes('.') ? last : `${last}.pdf`
@@ -332,22 +268,8 @@ export default function PDFViewer({
       {/* Barre d’outils */}
       <div className="pdfbar" role="toolbar" aria-label="Contrôles du document">
         <div className="pdfnav">
-          <button
-            className="pdfbtn"
-            onClick={prev}
-            disabled={page <= 1}
-            title="Page précédente"
-          >
-            ‹
-          </button>
-          <button
-            className="pdfbtn"
-            onClick={next}
-            disabled={page >= numPages}
-            title="Page suivante"
-          >
-            ›
-          </button>
+          <button className="pdfbtn" onClick={prev} disabled={page <= 1} title="Page précédente">‹</button>
+          <button className="pdfbtn" onClick={next} disabled={page >= numPages} title="Page suivante">›</button>
 
           <span className="pdfpage">
             Page{' '}
@@ -367,11 +289,7 @@ export default function PDFViewer({
         <div className="pdfactions">
           <button
             className="pdfbtn"
-            onClick={() => {
-              setFit('none')
-              fitRef.current = 'none'
-              setScale(s => Math.max(0.25, s - 0.1))
-            }}
+            onClick={() => { setFit('none'); fitRef.current = 'none'; setScale((s) => Math.max(0.25, s - 0.1)) }}
             aria-label="Zoom -"
             title="Zoom -"
           >
@@ -380,22 +298,14 @@ export default function PDFViewer({
 
           <button
             className="pdfbtn"
-            onClick={() => {
-              setFit('none')
-              fitRef.current = 'none'
-              setScale(s => Math.min(4, s + 0.1))
-            }}
+            onClick={() => { setFit('none'); fitRef.current = 'none'; setScale((s) => Math.min(4, s + 0.1)) }}
             aria-label="Zoom +"
             title="Zoom +"
           >
             +
           </button>
 
-          <button
-            className="pdfbtn pdfbtn-primary"
-            onClick={downloadPdf}
-            title="Télécharger le PDF"
-          >
+          <button className="pdfbtn pdfbtn-primary" onClick={downloadPdf} title="Télécharger le PDF">
             ⭳ Télécharger
           </button>
         </div>
@@ -403,7 +313,11 @@ export default function PDFViewer({
 
       {/* Zone de rendu */}
       <div ref={wrapRef} className="pdfwrap" style={{ height }}>
-        <canvas ref={canvasRef} className="pdfcanvas" />
+        <canvas
+          ref={canvasRef}
+          className="pdfcanvas"
+          style={{ display: 'block', margin: '0 auto' }} // même style minimal que l’ancienne version
+        />
       </div>
     </div>
   )

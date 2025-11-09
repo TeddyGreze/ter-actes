@@ -223,13 +223,19 @@ export default function EditActePage() {
     );
   }
 
+  // Titre d’affichage (fallback si titre vide)
+  const displayTitle = (a.titre?.trim() || `#${a.id}`);
+
   return (
     <main className="upload-shell">
       <div className="upload-wrap">
         <Link href="/admin" className="u-back">← Retour</Link>
 
         <div className="upload-card">
-          <h1 className="u-title">Modifier l’acte #{a.id}</h1>
+          {/* ⇩⇩⇩ ICI : titre avec le nom de l’acte */}
+          <h1 className="u-title" style={{ wordBreak: 'break-word' }}>
+            Modifier l’acte « {displayTitle} »
+          </h1>
 
           {/* Lien pour voir le PDF actuel (avec cache-buster) */}
           <p className="u-note" style={{ marginTop: -6, marginBottom: 10 }}>

@@ -37,7 +37,7 @@ body{
 .btn-primary{
   height:40px; padding:0 16px; border:0; border-radius:8px;
   background:var(--brand); color:#fff; font-weight:700; cursor:pointer;
-  text-decoration:none; display:inline-flex; align-items:center;
+  text-decoration:none; display:inline-flex; align-items:center; justify-content:center;
 }
 .btn-primary:hover{ background:var(--brand-600); }
 .btn-ghost{
@@ -233,4 +233,106 @@ body{
     font-size:16px;
     border-radius:12px;
   }
+}
+
+/* =========================================================
+   🔍 Recherche avancée (OCR) – styles intégrés côté admin
+   (mêmes classes que sur la page publique pour réutiliser
+   le composant sans import de raa.css)
+   ========================================================= */
+
+.adv-wrapper{
+  margin-top:16px;
+  margin-bottom:16px;
+}
+
+/* Ligne : bouton toggle + reset + bloc formulaire animé */
+.adv-inline-row{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  gap:12px;
+}
+.adv-chevron{
+  font-size:.8rem;
+  line-height:1;
+}
+
+/* Boutons/inputs compatibles avec l’admin */
+.raa-btn{
+  height:40px; padding:0 16px; border:0; border-radius:8px;
+  background:var(--brand); color:#fff; font-weight:700; cursor:pointer;
+  text-decoration:none; display:inline-flex; align-items:center; justify-content:center;
+}
+.raa-btn:hover{ background:var(--brand-600); }
+.raa-btn[disabled]{ opacity:.5; cursor:default; }
+
+.raa-btn-outline{
+  border:1px solid #cbd5e1; background:#fff; color:#0f172a;
+  padding:8px 12px; border-radius:8px; font-weight:600; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.raa-btn-outline:hover{ background:#f3f4f6; }
+
+.raa-input{
+  width:100%; border:1px solid #cbd5e1; background:#fff; border-radius:8px;
+  height:40px; padding:0 12px; line-height:1.2; font-size:.9rem;
+  outline:none; transition:border .15s, box-shadow .15s;
+}
+.raa-input:focus{
+  border-color:var(--brand);
+  box-shadow:0 0 0 3px color-mix(in oklab, var(--brand) 20%, transparent);
+}
+
+/* Animation d’ouverture/fermeture du bloc avancé */
+.adv-inline-formwrap{
+  flex:1 1 auto;
+  overflow:hidden;
+
+  /* fermé par défaut */
+  max-width:0;
+  max-height:0;
+  opacity:0;
+  transform:translateY(-4px);
+  transition:
+    max-width .22s ease,
+    max-height .22s ease,
+    opacity .22s ease,
+    transform .22s ease;
+}
+.adv-inline-formwrap.is-open{
+  max-width:1000px;   /* large pour desktop */
+  max-height:200px;   /* suffisant pour mobile */
+  opacity:1;
+  transform:translateY(0);
+}
+
+/* Formulaire interne */
+.adv-inline-form{
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:flex-end;
+  gap:.5rem;
+  flex:1;
+  min-width:260px;
+}
+.adv-inline-input{ flex:1; min-width:260px; }
+.adv-inline-submit{ white-space:nowrap; }
+
+/* Erreur */
+.adv-error{
+  flex-basis:100%;
+  font-size:.9rem;
+  margin:4px 0 0 0;
+  color:#b91c1c;
+}
+
+/* Responsive du bloc avancé */
+@media (max-width:520px){
+  .adv-inline-row{ align-items:stretch; }
+  .adv-inline-formwrap{ flex-basis:100%; max-width:100%; }
+  .adv-inline-formwrap.is-open{ max-width:100%; }
+  .adv-inline-form{ flex-basis:100%; flex-wrap:wrap; }
+  .adv-inline-input{ flex:1; min-width:0; }
+  .adv-inline-submit{ flex-shrink:0; }
 }
