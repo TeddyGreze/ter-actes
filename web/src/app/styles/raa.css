@@ -510,3 +510,17 @@ body{
     flex-shrink:0;
   }
 }
+
+.raa-table.refreshing{
+  opacity:.65;
+  transition:opacity .18s ease;
+  pointer-events:none;
+}
+.raa-row[aria-hidden="true"]{
+  animation: fadeIn .15s ease;
+}
+@keyframes fadeIn{
+  from{opacity:0}
+  to{opacity:1}
+}
+

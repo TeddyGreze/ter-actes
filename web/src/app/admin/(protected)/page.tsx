@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import '../../styles/admin.css'
@@ -25,14 +25,8 @@ type Acte = {
 type SortKey = 'titre' | 'date_publication' | 'type' | 'service'
 type SortDir = 'asc' | 'desc'
 
-const norm = (s?: string) =>
-  (s ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-
-const fmtDate = (iso?: string) =>
-  iso ? new Intl.DateTimeFormat('fr-FR').format(new Date(iso)) : ''
+const norm = (s?: string) => (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const fmtDate = (iso?: string) => (iso ? new Intl.DateTimeFormat('fr-FR').format(new Date(iso)) : '')
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -40,7 +34,11 @@ export default function AdminDashboard() {
 
   const [items, setItems] = useState<Acte[]>([])
   const [totalPages, setTotalPages] = useState<number | undefined>(undefined)
-  const [loading, setLoading] = useState(true)
+
+  // affichage
+  const [loading, setLoading] = useState(true)          // skeleton avant tout 1er rendu
+  const [refreshing, setRefreshing] = useState(false)   // rechargements doux
+  const [hasDataOnce, setHasDataOnce] = useState(false) // devient true après le 1er fetch réussi
 
   // Filtres
   const [q, setQ] = useState('')
@@ -59,6 +57,10 @@ export default function AdminDashboard() {
   // Filtre avancé (OCR plein texte)
   const [advFilter, setAdvFilter] = useState<{ term: string; ids: number[] } | null>(null)
 
+  // Boot/abort
+  const bootedRef = useRef(false) // bloque l’auto-reload des filtres au boot
+  const abortRef = useRef<AbortController | null>(null)
+
   useEffect(() => {
     const boot = async () => {
       const me = await fetch(`${API}/admin/me`, {
@@ -71,48 +73,83 @@ export default function AdminDashboard() {
         router.replace('/admin/login')
         return
       }
-      await load(1)
+      await load(1)                 // 1er fetch (skeleton visible)
+      bootedRef.current = true
     }
     boot()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function load(p = page) {
-    setLoading(true)
-    const url = new URL(`${API}/admin/actes`)
-    if (q) url.searchParams.set('q', q)
-    url.searchParams.set('page', String(p))
-    url.searchParams.set('size', String(PAGE_SIZE))
+    // Skeleton uniquement tant qu’on n’a jamais rendu de data
+    const showSkeleton = !hasDataOnce
+    if (showSkeleton) setLoading(true); else setRefreshing(true)
 
-    const res = await fetch(url, {
-      credentials: 'include',
-      cache: 'no-store',
-      headers: { 'cache-control': 'no-cache', pragma: 'no-cache' },
-    })
-    if (!res.ok) {
-      toast.error('Erreur de chargement')
-      router.replace('/admin/login')
-      return
-    }
-    const data = await res.json()
+    // Annule un fetch précédent
+    abortRef.current?.abort()
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
 
-    if (Array.isArray(data)) {
-      setItems(data)
-      setTotalPages(undefined)
-    } else {
-      const arr: Acte[] = data.items ?? data.results ?? data.data ?? []
-      setItems(arr)
-      const total =
-        typeof data.total_pages === 'number'
-          ? data.total_pages
-          : typeof data.total === 'number'
-          ? Math.max(1, Math.ceil(data.total / PAGE_SIZE))
-          : undefined
-      setTotalPages(total)
+    try {
+      const url = new URL(`${API}/admin/actes`)
+      if (q) url.searchParams.set('q', q)
+      if (type) url.searchParams.set('type', type)
+      if (service) url.searchParams.set('service', service)
+      if (dateMin) url.searchParams.set('date_min', dateMin)
+      if (dateMax) url.searchParams.set('date_max', dateMax)
+      url.searchParams.set('page', String(p))
+      url.searchParams.set('size', String(PAGE_SIZE))
+
+      const res = await fetch(url, {
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { 'cache-control': 'no-cache', pragma: 'no-cache' },
+        signal: ctrl.signal,
+      })
+      if (!res.ok) {
+        if (ctrl.signal.aborted) return
+        toast.error('Erreur de chargement')
+        router.replace('/admin/login')
+        return
+      }
+      const data = await res.json()
+      if (ctrl.signal.aborted) return
+
+      if (Array.isArray(data)) {
+        setItems(data)
+        setTotalPages(undefined)
+      } else {
+        const arr: Acte[] = data.items ?? data.results ?? data.data ?? []
+        setItems(arr)
+        const total =
+          typeof data.total_pages === 'number'
+            ? data.total_pages
+            : typeof data.total === 'number'
+            ? Math.max(1, Math.ceil(data.total / PAGE_SIZE))
+            : undefined
+        setTotalPages(total)
+      }
+      setPage(p)
+
+      // 👉 marqueur : on a déjà des données (même si 0 résultat), on peut dès lors afficher vide/pager sans flash
+      setHasDataOnce(true)
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        console.error(e)
+        toast.error('Erreur réseau')
+      }
+    } finally {
+      if (showSkeleton) setLoading(false); else setRefreshing(false)
     }
-    setPage(p)
-    setLoading(false)
   }
+
+  // 🔄 Auto-rechargement (debounce 300 ms) quand un filtre change
+  useEffect(() => {
+    if (!bootedRef.current) return
+    const t = setTimeout(() => { load(1) }, 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, type, service, dateMin, dateMax])
 
   const logout = async () => {
     try {
@@ -123,27 +160,18 @@ export default function AdminDashboard() {
         headers: { 'cache-control': 'no-cache', pragma: 'no-cache' },
       })
     } catch {}
-    try {
-      await fetch('/api/session/clear', { method: 'POST', cache: 'no-store' })
-    } catch {}
+    try { await fetch('/api/session/clear', { method: 'POST', cache: 'no-store' }) } catch {}
     window.location.assign('/admin/login')
   }
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
-    else {
-      setSortKey(key)
-      setSortDir('asc')
-    }
+    else { setSortKey(key); setSortDir('asc') }
   }
-  const sortArrow = (key: SortKey) =>
-    sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : '↕'
+  const sortArrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : '↕')
 
-  // Filtrage accent/casse + date range + filtre avancé + tri
   const displayItems = useMemo(() => {
-    const nq = norm(q)
-    const nt = norm(type)
-    const ns = norm(service)
+    const nq = norm(q), nt = norm(type), ns = norm(service)
     const min = dateMin ? new Date(dateMin).getTime() : undefined
     const max = dateMax ? new Date(dateMax).getTime() : undefined
 
@@ -164,7 +192,6 @@ export default function AdminDashboard() {
       return true
     })
 
-    // ⬇️ Application du filtre avancé OCR
     if (advFilter && advFilter.ids.length > 0) {
       const allowed = new Set(advFilter.ids)
       filtered = filtered.filter(a => allowed.has(a.id))
@@ -196,13 +223,13 @@ export default function AdminDashboard() {
       cache: 'no-store',
       headers: { 'cache-control': 'no-cache', pragma: 'no-cache' },
     })
-    if (res.ok) {
-      toast.success('Acte supprimé')
-      load(page)
-    } else {
-      toast.error('Échec de la suppression')
-    }
+    if (res.ok) { toast.success('Acte supprimé'); load(page) }
+    else { toast.error('Échec de la suppression') }
   }
+
+  // visibilité contrôlée pour éviter tout flash
+  const showEmpty = hasDataOnce && !loading && !refreshing && displayItems.length === 0
+  const showPager = hasDataOnce && !loading && displayItems.length > 0
 
   return (
     <main className="admin-wrap">
@@ -215,7 +242,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Filtres */}
+      {/* Filtres (live, sans bouton) */}
       <div className="admin-filters">
         <div className="f-field">
           <label>Recherche</label>
@@ -237,7 +264,6 @@ export default function AdminDashboard() {
           <label>Date max</label>
           <input className="f-input" type="date" value={dateMax} onChange={e=>setDateMax(e.target.value)} />
         </div>
-        <button className="btn-primary" onClick={()=>load(1)}>Rechercher</button>
       </div>
 
       {/* Recherche avancée (plein texte OCR) */}
@@ -248,42 +274,31 @@ export default function AdminDashboard() {
       />
 
       {/* Tableau */}
-      <div className="admin-table" role="table" aria-label="Actes">
+      <div
+        className={`admin-table${refreshing ? ' refreshing' : ''}`}
+        role="table"
+        aria-label="Actes"
+        aria-busy={loading || refreshing ? 'true' : undefined}
+      >
         <div className="t-row t-head" role="row">
-          <div
-            className={`t-cell t-th ${sortKey==='titre'?'active':''}`}
-            role="columnheader"
-            tabIndex={0}
-            onClick={()=>toggleSort('titre')}
-            onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('titre')}
-          >
+          <div className={`t-cell t-th ${sortKey==='titre'?'active':''}`} role="columnheader" tabIndex={0}
+               onClick={()=>toggleSort('titre')}
+               onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('titre')}>
             <span>Nom</span> <span className="sort">{sortArrow('titre')}</span>
           </div>
-          <div
-            className={`t-cell t-th ${sortKey==='date_publication'?'active':''}`}
-            role="columnheader"
-            tabIndex={0}
-            onClick={()=>toggleSort('date_publication')}
-            onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('date_publication')}
-          >
+          <div className={`t-cell t-th ${sortKey==='date_publication'?'active':''}`} role="columnheader" tabIndex={0}
+               onClick={()=>toggleSort('date_publication')}
+               onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('date_publication')}>
             <span>Publication</span> <span className="sort">{sortArrow('date_publication')}</span>
           </div>
-          <div
-            className={`t-cell t-th ${sortKey==='type'?'active':''}`}
-            role="columnheader"
-            tabIndex={0}
-            onClick={()=>toggleSort('type')}
-            onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('type')}
-          >
+          <div className={`t-cell t-th ${sortKey==='type'?'active':''}`} role="columnheader" tabIndex={0}
+               onClick={()=>toggleSort('type')}
+               onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('type')}>
             <span>Type</span> <span className="sort">{sortArrow('type')}</span>
           </div>
-          <div
-            className={`t-cell t-th ${sortKey==='service'?'active':''}`}
-            role="columnheader"
-            tabIndex={0}
-            onClick={()=>toggleSort('service')}
-            onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('service')}
-          >
+          <div className={`t-cell t-th ${sortKey==='service'?'active':''}`} role="columnheader" tabIndex={0}
+               onClick={()=>toggleSort('service')}
+               onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('service')}>
             <span>Service</span> <span className="sort">{sortArrow('service')}</span>
           </div>
           <div className="t-cell t-th t-actions">Actions</div>
@@ -291,12 +306,18 @@ export default function AdminDashboard() {
 
         {loading ? (
           Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="skel-row" role="row" aria-hidden="true">
-              <Skeleton className="skel-line" />
-              <Skeleton className="skel-line" />
-              <Skeleton className="skel-line" />
-              <Skeleton className="skel-line" />
-              <Skeleton className="skel-pill" style={{ width: 120 }} />
+            <div key={i} className="t-row" role="row" aria-hidden="true">
+              <div className="t-cell t-name" role="cell"><Skeleton className="skel-line" style={{ width: '60%' }} /></div>
+              <div className="t-cell" role="cell"><Skeleton className="skel-line" style={{ width: 90 }} /></div>
+              <div className="t-cell" role="cell"><Skeleton className="skel-line" style={{ width: 120 }} /></div>
+              <div className="t-cell" role="cell"><Skeleton className="skel-line" style={{ width: 130 }} /></div>
+              <div className="t-cell t-actions" role="cell">
+                <Skeleton className="skel-btn" />
+                <div className="a-row">
+                  <Skeleton className="skel-btn" />
+                  <Skeleton className="skel-btn" />
+                </div>
+              </div>
             </div>
           ))
         ) : (
@@ -309,16 +330,12 @@ export default function AdminDashboard() {
                     <span className="t-title" title={a.titre}>{a.titre}</span>
                     <div className="t-meta-mobile">
                       <div className="m-date">{fmtDate(date)}</div>
-                      <div className="m-inline">
-                        {a.type || '—'} · {a.service || '—'}
-                      </div>
+                      <div className="m-inline">{a.type || '—'} · {a.service || '—'}</div>
                     </div>
                   </div>
                   <div className="t-cell" role="cell">{fmtDate(date)}</div>
                   <div className="t-cell" role="cell">{a.type || '—'}</div>
                   <div className="t-cell" role="cell">{a.service || '—'}</div>
-
-                  {/* Actions */}
                   <div className="t-cell t-actions" role="cell">
                     <Link href={`/acte/${a.id}?from=admin`} className="btn-outline btn-open">Ouvrir</Link>
                     <div className="a-row">
@@ -330,28 +347,35 @@ export default function AdminDashboard() {
               )
             })}
 
-            {displayItems.length === 0 && (
-              <div className="t-row t-empty">Aucun acte</div>
+            {showEmpty && (
+              <div className="t-row" role="row" aria-live="polite">
+                <div className="t-cell t-empty" role="cell"
+                     style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '14px 8px', color: '#64748b' }}>
+                  Aucun acte trouvé...
+                </div>
+              </div>
             )}
           </>
         )}
       </div>
 
-      {/* Pagination pilule */}
-      <nav className="pager-wrap" aria-label="Pagination">
-        <div className="pager-pill" role="group">
-          <button type="button" onClick={()=> hasPrev && load(1)} disabled={!hasPrev} title="Première">««</button>
-          <button type="button" onClick={()=> hasPrev && load(page-1)} disabled={!hasPrev} title="Précédente">‹</button>
-          <span className="count">{typeof totalPages==='number' ? `Page ${page} / ${totalPages}` : `Page ${page}`}</span>
-          <button type="button" onClick={()=> hasNext && load(page+1)} disabled={!hasNext} title="Suivante">›</button>
-          <button
-            type="button"
-            onClick={()=> typeof totalPages==='number' && page!==totalPages && load(totalPages!)}
-            disabled={typeof totalPages!=='number' || page===totalPages}
-            title="Dernière"
-          >»»</button>
-        </div>
-      </nav>
+      {/* Pagination pilule : affichée seulement quand des lignes sont rendues */}
+      {showPager && (
+        <nav className="pager-wrap" aria-label="Pagination">
+          <div className="pager-pill" role="group" aria-hidden={refreshing ? 'true' : 'false'}>
+            <button type="button" onClick={()=> page>1 && load(1)} disabled={page<=1} title="Première">««</button>
+            <button type="button" onClick={()=> page>1 && load(page-1)} disabled={page<=1} title="Précédente">‹</button>
+            <span className="count">{typeof totalPages==='number' ? `Page ${page} / ${totalPages}` : `Page ${page}`}</span>
+            <button type="button" onClick={()=> hasNext && load(page+1)} disabled={!hasNext} title="Suivante">›</button>
+            <button
+              type="button"
+              onClick={()=> typeof totalPages==='number' && page!==totalPages && load(totalPages!)}
+              disabled={typeof totalPages!=='number' || page===totalPages}
+              title="Dernière"
+            >»»</button>
+          </div>
+        </nav>
+      )}
     </main>
   )
 }
