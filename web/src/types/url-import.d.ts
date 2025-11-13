@@ -8,7 +8,6 @@ declare module '*.js?url' {
   export default href;
 }
 
-// (facultatif mais pratique)
 declare module 'pdfjs-dist/build/pdf.worker.mjs?url' {
   const href: string;
   export default href;

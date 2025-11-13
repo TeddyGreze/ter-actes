@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import 'pdfjs-dist/web/pdf_viewer.css'
 import '../app/styles/acte.css'
@@ -35,6 +35,7 @@ type Props = {
   height?: number
   initialScale?: number
   fitModeDefault?: FitMode
+  extraActions?: ReactNode
 }
 
 export default function PDFViewer({
@@ -43,6 +44,7 @@ export default function PDFViewer({
   height = 900,
   initialScale = 1.25,
   fitModeDefault = 'page',
+  extraActions,
 }: Props) {
   const wrapRef   = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -66,7 +68,7 @@ export default function PDFViewer({
   // Détruire complètement le PDF courant
   const destroyPdf  = () => { try { pdfRef.current?.destroy() } catch {} ; pdfRef.current = null }
 
-  // --------- Rendu d'UNE page sur le <canvas> (identique ancienne logique) ---------
+  // --------- Rendu d'UNE page sur le <canvas> ---------
   const renderPage = useCallback(async () => {
     const pdf    = pdfRef.current
     const canvas = canvasRef.current
@@ -98,7 +100,7 @@ export default function PDFViewer({
     }
   }, [scale])
 
-  // --------- Ajuster le zoom pour "tenir dans la zone d'affichage" (identique ancienne) ---------
+  // --------- Ajuster le zoom pour "tenir dans la zone d'affichage" ---------
   const fitPage = useCallback(async () => {
     if (!pdfRef.current || !wrapRef.current) return
     const p = await pdfRef.current.getPage(pageRef.current)
@@ -124,7 +126,7 @@ export default function PDFViewer({
   const next = () => goTo(pageRef.current + 1)
 
   // ----------------------------------------------------
-  // Chargement / parsing du PDF (⚠️ dépend seulement de url/file comme l'ancienne)
+  // Chargement / parsing du PDF
   // ----------------------------------------------------
   useEffect(() => {
     let cancelled = false
@@ -165,12 +167,12 @@ export default function PDFViewer({
 
     return () => { cancelled = true; cancelRender(); destroyPdf() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, file]) // ⬅️ important : pas de renderPage/fitPage/initialScale ici
+  }, [url, file])
 
-  // Re-render quand page/zoom changent (identique ancienne)
+  // Re-render quand page/zoom changent
   useEffect(() => { renderPage() }, [page, scale, renderPage])
 
-  // Refit si on est en mode page (identique ancienne : pas de renderPage ici)
+  // Refit si on est en mode page
   useEffect(() => {
     if (fitMode !== 'page') return
     const ro = new ResizeObserver(() => fitPage())
@@ -178,7 +180,7 @@ export default function PDFViewer({
     return () => ro.disconnect()
   }, [fitMode, fitPage])
 
-  // Molette : Ctrl/Cmd => zoom ; sinon changement de page aux bords (identique ancienne)
+  // Molette : Ctrl/Cmd => zoom ; sinon changement de page aux bords
   useEffect(() => {
     const el = wrapRef.current
     if (!el) return
@@ -215,7 +217,7 @@ export default function PDFViewer({
   }, [numPages])
 
   // ----------------------------------------------------
-  // Télécharger le PDF avec le bon nom (inchangé)
+  // Télécharger le PDF avec le bon nom
   // ----------------------------------------------------
   const downloadPdf = async () => {
     try {
@@ -308,6 +310,8 @@ export default function PDFViewer({
           <button className="pdfbtn pdfbtn-primary" onClick={downloadPdf} title="Télécharger le PDF">
             ⭳ Télécharger
           </button>
+
+          {extraActions}
         </div>
       </div>
 
@@ -316,7 +320,7 @@ export default function PDFViewer({
         <canvas
           ref={canvasRef}
           className="pdfcanvas"
-          style={{ display: 'block', margin: '0 auto' }} // même style minimal que l’ancienne version
+          style={{ display: 'block', margin: '0 auto' }}
         />
       </div>
     </div>

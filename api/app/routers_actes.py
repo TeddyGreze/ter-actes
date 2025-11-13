@@ -1,18 +1,29 @@
+# api/app/routers_actes.py
 from typing import Optional, List
 from datetime import date
 import os
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import select, and_, or_
 from starlette.responses import FileResponse
 
 from .database import get_db
 from .models import Acte
-from .schemas import ActeOut
+from .schemas import ActeOut, ActeEmailRequest, MessageOut
+from .config import settings
+from .email_utils import send_acte_email
 
 router = APIRouter(prefix="/actes", tags=["actes"])
+
+
+def _build_front_link(acte_id: int) -> str:
+    """
+    Construit l'URL publique de la page /acte/[id] côté front.
+    """
+    base = settings.PUBLIC_FRONT_BASE_URL.rstrip("/")
+    return f"{base}/acte/{acte_id}"
 
 
 # =====================================================
@@ -36,7 +47,6 @@ def search_fulltext(
     Pas le PDF entier, juste un extrait autour du match.
     """
 
-    # filtre SQL côté DB (case-insensitive)
     like = f"%{q}%"
     stmt = (
         select(Acte)
@@ -55,14 +65,11 @@ def search_fulltext(
     for acte in actes:
         excerpt = None
         if acte.fulltext_content:
-            # essaie de trouver la chaîne dans le texte pour fabriquer un mini-contexte
             m = re.search(re.escape(q), acte.fulltext_content, flags=re.IGNORECASE)
             if m:
                 start = max(0, m.start() - 120)
                 end = min(len(acte.fulltext_content), m.end() + 120)
                 snippet = acte.fulltext_content[start:end].strip()
-
-                # remplace les retours à la ligne multiples par des espaces
                 snippet = re.sub(r"\s+", " ", snippet)
                 excerpt = snippet
 
@@ -166,4 +173,52 @@ def get_pdf(acte_id: int, db: Session = Depends(get_db)):
             "Content-Disposition": f'attachment; filename="{safe_name}"',
             "Access-Control-Expose-Headers": "Content-Disposition",
         },
+    )
+
+
+# =====================================================
+# 5) ENVOI PUBLIC PAR E-MAIL
+#    POST /actes/{acte_id}/email
+# =====================================================
+@router.post("/{acte_id}/email", response_model=MessageOut)
+def send_acte_by_email_public(
+    acte_id: int,
+    payload: ActeEmailRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Envoi PUBLIC d'un acte par e-mail.
+
+    - accessible sans authentification
+    - payload JSON: { "email": "destinataire@domaine.fr" }
+    - l'e-mail contient :
+        * un lien vers la page publique de l'acte
+        * + le PDF en pièce jointe
+    """
+    acte = db.get(Acte, acte_id)
+    if not acte:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    if not acte.pdf_path:
+        raise HTTPException(
+            status_code=400,
+            detail="Aucun fichier PDF n'est associé à cet acte.",
+        )
+
+    # URL publique vers la page de l'acte
+    link = _build_front_link(acte_id)
+
+    # Envoi en tâche de fond : la requête HTTP répond tout de suite
+    background_tasks.add_task(
+        send_acte_email,
+        to_email=payload.email,
+        acte_title=acte.titre,
+        link_url=link,
+        pdf_path=acte.pdf_path,
+    )
+
+    return MessageOut(
+        ok=True,
+        detail="E-mail envoyé. Pensez à vérifier vos spams.",
     )

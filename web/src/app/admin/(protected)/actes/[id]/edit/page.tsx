@@ -23,7 +23,6 @@ type Acte = {
   date_signature?: string | null;
   date_publication?: string | null;
   statut?: string | null;
-  resume?: string | null;
   pdf_path: string;
   created_at?: string;
 };
@@ -192,7 +191,6 @@ export default function EditActePage() {
     if (a.date_signature ?? '') fd.set('date_signature', a.date_signature as string);
     if (a.date_publication ?? '') fd.set('date_publication', a.date_publication as string);
     if (a.statut ?? '') fd.set('statut', a.statut as string);
-    if (a.resume ?? '') fd.set('resume', a.resume as string);
     if (file) fd.set('pdf', file);
 
     const res = await fetch(`${API}/admin/actes/${a.id}`, {
@@ -388,17 +386,6 @@ export default function EditActePage() {
                 className="u-input"
                 value={a.statut || ''}
                 onChange={(e) => setA({ ...a, statut: e.target.value })}
-              />
-            </div>
-
-            <div className="u-field">
-              <label htmlFor="resume">Résumé</label>
-              <textarea
-                id="resume"
-                className="u-input"
-                value={a.resume || ''}
-                onChange={(e) => setA({ ...a, resume: e.target.value })}
-                rows={4}
               />
             </div>
 

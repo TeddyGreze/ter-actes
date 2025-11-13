@@ -31,7 +31,6 @@ export default function AdminUpload() {
     date_signature: '',
     date_publication: '',
     statut: '',
-    resume: '',
   });
 
   // gestion champ personnalisé "Autre…"
@@ -203,7 +202,6 @@ export default function AdminUpload() {
     if (form.date_signature) fd.set('date_signature', form.date_signature);
     if (form.date_publication) fd.set('date_publication', form.date_publication);
     if (form.statut) fd.set('statut', form.statut);
-    if (form.resume) fd.set('resume', form.resume);
 
     // fichier PDF
     fd.set('pdf', file);
@@ -234,7 +232,6 @@ export default function AdminUpload() {
       date_signature: '',
       date_publication: '',
       statut: '',
-      resume: '',
     });
     setUseCustomType(false);
     setCustomType('');
@@ -395,18 +392,6 @@ export default function AdminUpload() {
                 className="u-input"
                 value={form.statut}
                 onChange={(e) => setForm({ ...form, statut: e.target.value })}
-              />
-            </div>
-
-            {/* Résumé */}
-            <div className="u-field">
-              <label htmlFor="resume">Résumé</label>
-              <textarea
-                id="resume"
-                className="u-input"
-                value={form.resume}
-                onChange={(e) => setForm({ ...form, resume: e.target.value })}
-                rows={4}
               />
             </div>
 

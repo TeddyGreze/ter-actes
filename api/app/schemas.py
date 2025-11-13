@@ -36,9 +36,26 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
 
 
-# Pour l'analyse à chaud du PDF envoyé dans /admin/analyse-pdf
+# Pour l'analyse du PDF envoyé dans /admin/analyse-pdf
 class AnalysePDFOut(BaseModel):
     fulltext_excerpt: str
     date_auto: Optional[str] = None
     service_auto: Optional[str] = None
     type_auto: Optional[str] = None
+
+
+# ====== Envoi public par e-mail d'un acte ======
+
+class ActeEmailRequest(BaseModel):
+    """
+    Payload pour POST /actes/{acte_id}/email (public).
+    """
+    email: EmailStr
+
+
+class MessageOut(BaseModel):
+    """
+    Réponse générique pour les actions de type "commande".
+    """
+    ok: bool = True
+    detail: str

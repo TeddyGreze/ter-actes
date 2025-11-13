@@ -27,7 +27,7 @@ body{ background:var(--bg); color:var(--fg); }
 .acte-back:hover{ text-decoration:underline; }
 
 .acte-title{
-  font-size: 38;
+  font-size: 38px;
   font-weight: 750;
   letter-spacing: .2px;
   margin: 4px 0 8px;
@@ -78,7 +78,7 @@ body{ background:var(--bg); color:var(--fg); }
 /* ---------- PDF Viewer (toolbar + viewport) ---------- */
 .pdfviewer{ width: 100%; }
 
-/* Barre d’outils (DESKTOP inchangé) */
+/* Barre d’outils */
 .pdfbar{
   display:flex;
   gap:12px;
@@ -89,7 +89,14 @@ body{ background:var(--bg); color:var(--fg); }
   border-bottom: 1px solid var(--border);
 }
 .pdfnav{ display:flex; gap:8px; align-items:center; }
-.pdfactions{ display:flex; gap:8px; align-items:center; margin-left:auto; }
+
+/* Groupe des boutons : -  +  Télécharger  Envoyer par e-mail */
+.pdfactions{
+  display:flex;
+  gap:8px;              /* même espace entre tous les boutons */
+  align-items:center;
+  margin-left:auto;      /* les colle à droite de la barre */
+}
 
 .pdfbtn{
   border:1px solid #cbd5e1;
@@ -150,51 +157,180 @@ body{ background:var(--bg); color:var(--fg); }
   max-width: 100%;
 }
 
-/* ≤ 768px */
+/* =========================================
+   BREAKPOINTS
+   ========================================= */
+
+/* ≤ 768px : texte un peu plus petit, hauteur adaptée */
 @media (max-width: 768px){
   .acte-title{ font-size: clamp(24px, 6vw, 32px); }
-  .pdfbtn{ padding: 10px; }
+  .pdfbtn{ padding: 8px 10px; }
   .pdfpage{ font-size: 14px; }
   .pdfpage-input{ width: 52px; }
   .pdfwrap{ height: 65vh !important; }
 }
 
-/* ≤ 480px */
-@media (max-width: 480px){
-  .acte-wrap{ padding: 16px 12px; }
-  .acte-title{ font-size: clamp(22px, 8vw, 28px); }
-}
-
-/* ≤ 600px : responsive */
-@media (max-width: 600px){
-  .pdfbar{
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    row-gap: 8px;
+/* ≤ 640px : barre d’outils en 2 lignes (nav / actions) */
+@media (max-width: 640px){
+  .acte-wrap{
+    padding: 16px 12px;
   }
-  .pdfnav{ min-width: 0; gap: 6px; }
 
-  .pdfactions{ margin-left: 0; justify-self: end; }
+  .pdfbar{
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .pdfnav{
+    justify-content: center;
+    width: 100%;
+  }
+
+  .pdfactions{
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 
   .pdfpage{
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
+    margin-left: 0;
   }
+}
 
+/* ≤ 360px : bouton un peu plus serrés */
+@media (max-width: 360px){
+  .pdfbtn{ padding: 8px 8px; }
+  .pdfpage{ font-size: 13px; }
   .pdfpage-input{
-    width: 42px;
+    width: 40px;
     box-sizing: border-box;
   }
 }
 
-@media (max-width: 360px){
-  .pdfbtn{ padding: 8px 10px; }
-  .pdfpage{ font-size: 13px; }
-  .pdfpage-input{
-    width: 36px;
-    box-sizing: border-box;
-  }
+/* === Formulaire d'envoi par e-mail === */
+
+.acte-email-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.acte-email-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.acte-email-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.acte-email-input {
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+}
+
+.acte-email-input:focus {
+  outline: 2px solid #078d9a;
+  outline-offset: 1px;
+}
+
+.acte-email-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.acte-email-button {
+  align-self: flex-start;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #078d9a;
+  color: #fff;
+  cursor: pointer;
+}
+
+.acte-email-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.acte-email-button:hover:not(:disabled) {
+  background: #067883;
+}
+
+.acte-email-success {
+  font-size: 0.85rem;
+  color: #15803d;
+}
+
+.acte-email-error {
+  font-size: 0.85rem;
+  color: #b91c1c;
+}
+
+/* === Bouton "Envoyer par e-mail" dans la barre === */
+.acte-email-toolbar-btn {
+  white-space: nowrap;
+}
+
+/* === Modale d'envoi par e-mail === */
+
+.acte-email-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 50;
+}
+
+.acte-email-modal {
+  width: 100%;
+  max-width: 420px;
+  background:#fff;
+  border-radius: 16px;
+  padding: 18px 22px 20px;
+  box-shadow: 0 20px 45px rgba(15,23,42,.35);
+}
+
+.acte-email-modal-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom: 8px;
+}
+
+.acte-email-modal-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.acte-email-modal-close {
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 4px;
+  color:#64748b;
+}
+
+.acte-email-modal-close:hover {
+  color:#0f172a;
 }

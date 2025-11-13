@@ -36,7 +36,7 @@ app.add_middleware(
     allow_credentials=True,
 )
 
-# --- Sécurité : CSP stricte par défaut, assouplie pour /docs ---
+# --- Sécurité : CSP stricte par défaut ---
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     resp = await call_next(request)
@@ -46,7 +46,6 @@ async def security_headers(request: Request, call_next):
     resp.headers.setdefault("Referrer-Policy", "no-referrer")
     resp.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 
-    # CSP stricte partout…
     csp_strict = (
         "default-src 'self'; "
         "img-src 'self' data:; "
@@ -54,7 +53,7 @@ async def security_headers(request: Request, call_next):
         "script-src 'self'; "
         "frame-ancestors 'self'"
     )
-    # …mais Swagger UI utilise un script inline pour s'initialiser
+    
     csp_docs = (
         "default-src 'self'; "
         "img-src 'self' data:; "
@@ -71,7 +70,6 @@ async def security_headers(request: Request, call_next):
 
     return resp
 
-# --- Seed référentiels ---
 def seed_reference_data():
     with SessionLocal() as db:
         if db.query(ActType).count() == 0:
@@ -80,7 +78,6 @@ def seed_reference_data():
             db.add_all([Service(name="Mairie"), Service(name="Culture"), Service(name="Voirie"), Service(name="Urbanisme")])
         db.commit()
 
-# --- Migration légère ---
 def _ensure_fulltext_column():
     ddl = text("ALTER TABLE actes ADD COLUMN IF NOT EXISTS fulltext_content TEXT;")
     with engine.begin() as conn:
@@ -115,12 +112,11 @@ app.include_router(actes_router, prefix="")
 app.include_router(admin_router, prefix="")
 app.include_router(refs_router, prefix="")
 
-# --- Forcer OpenAPI 3.0.x (compatible avec le bundle local) ---
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
     schema = get_openapi(title=app.title, version=app.version, routes=app.routes)
-    schema["openapi"] = "3.0.3"   # clé du fix
+    schema["openapi"] = "3.0.3"
     app.openapi_schema = schema
     return app.openapi_schema
 app.openapi = custom_openapi
