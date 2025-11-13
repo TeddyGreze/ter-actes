@@ -131,7 +131,6 @@ export default function AdminDashboard() {
       }
       setPage(p)
 
-      // 👉 marqueur : on a déjà des données (même si 0 résultat), on peut dès lors afficher vide/pager sans flash
       setHasDataOnce(true)
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
@@ -143,7 +142,6 @@ export default function AdminDashboard() {
     }
   }
 
-  // 🔄 Auto-rechargement (debounce 300 ms) quand un filtre change
   useEffect(() => {
     if (!bootedRef.current) return
     const t = setTimeout(() => { load(1) }, 300)
@@ -238,6 +236,7 @@ export default function AdminDashboard() {
         <h1 className="admin-title">Tableau de bord - Actes</h1>
         <div className="admin-actions">
           <Link href="/admin/upload" className="btn-primary">+ Ajouter un acte</Link>
+          <Link href="/admin/upload/upload-multiple" className="btn-primary">+ Ajout multiple </Link>
           <button onClick={logout} className="btn-ghost">Se déconnecter</button>
         </div>
       </div>
