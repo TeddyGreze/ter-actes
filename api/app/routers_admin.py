@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Optional, List
 
-import os
 from pathlib import Path
+import json
 
 from fastapi import (
     APIRouter,
@@ -18,6 +18,7 @@ from fastapi import (
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import Session
+from pydantic import BaseModel, ValidationError
 
 from .config import settings
 from .database import get_db
@@ -41,6 +42,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 # ---------- Helpers ----------
 
+
 def ensure_admin(db: Session):
     """Crée l’utilisateur admin par défaut s’il n’existe pas encore."""
     user = db.query(User).filter(User.email == settings.ADMIN_EMAIL).first()
@@ -55,9 +57,36 @@ def ensure_admin(db: Session):
 
 
 def _parse_date(s: Optional[str]):
+    """
+    Accepte :
+      - JJ/MM/AAAA
+      - JJ/MM/AA (devient JJ/MM/20AA)
+      - AAAA-MM-JJ (format HTML <input type="date">)
+    """
     if not s:
         return None
-    return datetime.fromisoformat(s).date()
+    s = s.strip()
+    try:
+        if "/" in s:
+            parts = s.split("/")
+            if len(parts) != 3:
+                raise ValueError("format inattendu")
+            d_str, m_str, y_str = [p.strip() for p in parts]
+            d = int(d_str)
+            m = int(m_str)
+            if len(y_str) == 2:
+                # JJ/MM/AA -> JJ/MM/20AA
+                y = 2000 + int(y_str)
+            else:
+                y = int(y_str)
+            return datetime(year=y, month=m, day=d).date()
+
+        # Sinon on suppose un format ISO AAAA-MM-JJ (inputs HTML)
+        return datetime.fromisoformat(s).date()
+    except ValueError as e:
+        raise ValueError(
+            f"Format de date invalide: {s}. Attendu JJ/MM/AAAA, JJ/MM/AA ou AAAA-MM-JJ."
+        ) from e
 
 
 def _delete_file_if_exists(path_str: Optional[str]):
@@ -89,7 +118,19 @@ def _auto_metadata_from_text(text: str, db: Session):
     return date_auto, service_auto, type_auto
 
 
+class BulkActeCreate(BaseModel):
+    """
+    Données d’un acte pour la création multiple.
+    """
+    titre: str
+    type: Optional[str] = None
+    service: Optional[str] = None
+    date_signature: Optional[str] = None   # "JJ/MM/AAAA", "JJ/MM/AA" ou "AAAA-MM-JJ"
+    date_publication: Optional[str] = None
+
+
 # ---------- Auth ----------
+
 
 @router.post("/login", response_model=TokenOut)
 def login(
@@ -139,6 +180,7 @@ def me(user=Depends(get_current_user)):
 
 # ---------- Analyse PDF (pré-remplissage formulaire upload) ----------
 
+
 @router.post("/analyse-pdf", response_model=AnalysePDFOut)
 async def analyse_pdf(
     pdf: UploadFile = File(...),
@@ -173,7 +215,93 @@ async def analyse_pdf(
     )
 
 
-# ---------- Admin : CRUD Actes ----------
+# ---------- Ajout multiple (formulaire multi-PDF) ----------
+
+
+@router.post("/actes/bulk", response_model=dict)
+async def admin_create_actes_bulk(
+    items: str = Form(...),                      # JSON string [{...}, {...}]
+    files: List[UploadFile] = File(default=[]),  # liste de PDF (un par ligne)
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """
+    Création en masse d'actes à partir du formulaire multi-upload.
+    - items : JSON d'une liste de BulkActeCreate
+    - files : liste de PDF alignés avec les items (index 0 -> acte #1, etc.)
+    """
+    try:
+        raw_items = json.loads(items)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Champ 'items' invalide (JSON attendu).")
+
+    if not isinstance(raw_items, list) or len(raw_items) == 0:
+        raise HTTPException(status_code=400, detail="'items' doit être une liste non vide.")
+
+    actes_data: List[BulkActeCreate] = []
+    for idx, obj in enumerate(raw_items):
+        try:
+            actes_data.append(BulkActeCreate(**obj))
+        except ValidationError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Ligne {idx + 1} invalide dans 'items': {e.errors()}",
+            )
+
+    created_ids: List[int] = []
+
+    # pour chaque entrée, on crée un Acte comme dans create_acte_one_shot
+    for i, data in enumerate(actes_data):
+        if i >= len(files) or files[i] is None:
+            raise HTTPException(status_code=400, detail=f"PDF manquant pour l'acte #{i + 1}.")
+        pdf = files[i]
+
+        # lire les bytes pour OCR
+        raw_bytes = await pdf.read()
+        pdf.file.seek(0)
+
+        # sauvegarder le PDF sur disque (validation incluse)
+        path = await save_pdf_validated(settings.UPLOAD_DIR, pdf)
+
+        # fulltext pour recherche OCR
+        fulltxt = extract_text_with_ocr_if_needed(raw_bytes)
+
+        try:
+            ds = _parse_date(data.date_signature)
+            dp = _parse_date(data.date_publication)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Date invalide pour l'acte #{i + 1} "
+                    "(format attendu JJ/MM/AAAA, JJ/MM/AA ou AAAA-MM-JJ)."
+                ),
+            )
+
+        acte = Acte(
+            titre=data.titre,
+            type=data.type,
+            service=data.service,
+            date_signature=ds,
+            date_publication=dp,
+            pdf_path=path,
+            fulltext_content=fulltxt,
+        )
+        db.add(acte)
+        db.flush()   # pour récupérer l'id sans commit à chaque fois
+        created_ids.append(acte.id)
+
+    db.commit()
+
+    return {
+        "detail": "created",
+        "count": len(created_ids),
+        "created": created_ids,
+    }
+
+
+# ---------- Admin : CRUD Actes (classique) ----------
+
 
 @router.get("/actes", response_model=List[ActeOut])
 def admin_list_actes(
@@ -213,7 +341,6 @@ def admin_list_actes(
         conds.append(Acte.date_publication <= _parse_date(date_max))
 
     if conds:
-        from sqlalchemy import and_
         stmt = stmt.where(and_(*conds))
 
     stmt = (
@@ -235,8 +362,6 @@ async def create_acte_one_shot(
     service: Optional[str] = Form(None),
     date_signature: Optional[str] = Form(None),
     date_publication: Optional[str] = Form(None),
-    statut: Optional[str] = Form(None),
-    resume: Optional[str] = Form(None),
     pdf: UploadFile = File(...),
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
@@ -264,8 +389,6 @@ async def create_acte_one_shot(
         service=service,
         date_signature=_parse_date(date_signature),
         date_publication=_parse_date(date_publication),
-        statut=statut,
-        resume=resume,
         pdf_path=path,
         fulltext_content=fulltxt,
     )
@@ -284,8 +407,6 @@ async def admin_update_acte(
     service: Optional[str] = Form(None),
     date_signature: Optional[str] = Form(None),
     date_publication: Optional[str] = Form(None),
-    statut: Optional[str] = Form(None),
-    resume: Optional[str] = Form(None),
     pdf: UploadFile = File(None),
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
@@ -306,10 +427,6 @@ async def admin_update_acte(
         acte.type = type
     if service is not None:
         acte.service = service
-    if statut is not None:
-        acte.statut = statut
-    if resume is not None:
-        acte.resume = resume
     if date_signature is not None:
         acte.date_signature = _parse_date(date_signature)
     if date_publication is not None:
