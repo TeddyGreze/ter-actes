@@ -31,7 +31,12 @@ body{
 .admin-topbar{
   display:flex; align-items:center; justify-content:space-between; gap:12px;
 }
-.admin-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+.admin-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end; /* tout à droite */
+}
 
 /* Boutons */
 .btn-primary{
@@ -176,6 +181,27 @@ body{
 /*  ====================== Responsive ======================= */
 @media (max-width: 900px){
   .admin-filters{ row-gap:12px; grid-template-columns: 1fr 1fr; }
+  .admin-actions {
+    width: 100%;
+    display: grid;
+    justify-content: end;      
+    grid-template-columns: auto auto; 
+    gap: 8px;
+  }
+  .admin-actions a:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .admin-actions a:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .admin-actions button,
+  .admin-actions a.btn-ghost {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
   .f-field { margin-right:25px;}
   .t-row{ grid-template-columns: 1fr 150px 200px; }
   .t-row .t-cell:nth-child(3),
@@ -188,6 +214,14 @@ body{
 /* ================= Téléphone uniquement ================= */
 @media (max-width: 520px){
   .admin-filters{ grid-template-columns: 1fr; }
+  .admin-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: flex-end;
+    align-items: flex-end;  
+  }
   .btn-primary{ padding:0 8px}
   .t-row{ grid-template-columns: 1fr auto; }
   .t-row .t-cell:nth-child(2){ display:none; }
@@ -236,7 +270,7 @@ body{
 }
 
 /* =========================================================
-   🔍 Recherche avancée (OCR) – styles intégrés côté admin
+    Recherche avancée (OCR) – styles intégrés côté admin
    (mêmes classes que sur la page publique pour réutiliser
    le composant sans import de raa.css)
    ========================================================= */
@@ -347,7 +381,7 @@ body{
 .skel-pill{ height:20px; border-radius:999px; }
 
 /* =========================================================
-   ✅ Ajouts anti-flash pendant les recherches live
+   Ajouts anti-flash pendant les recherches live
    ========================================================= */
 
 /* Effet "rafraîchissement doux" : on garde les lignes, juste un léger dim */
