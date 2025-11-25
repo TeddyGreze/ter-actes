@@ -61,6 +61,11 @@ body{
 }
 .btn-danger:hover{ background:#fee2e2; }
 
+.admin-users-btn {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 /* ---------- Barre de filtres ---------- */
 .admin-filters{
   display:grid;

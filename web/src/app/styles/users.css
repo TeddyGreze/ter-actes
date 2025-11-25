@@ -1,0 +1,464 @@
+/* ---- Page Gestion des utilisateurs ---- */
+
+.admin-users-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+}
+
+/* Ligne du haut : lien retour + info utilisateur connecté */
+.users-backline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.users-backline .a-link {
+  font-size: 0.85rem;
+}
+
+.users-me strong {
+  font-weight: 600;
+}
+
+/* Petit fil d'Ariane sur la page édition */
+.users-breadcrumbs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Titre + bouton journal d'audit */
+.users-header-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+/* Titre principal */
+.users-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 20px; /* le margin-bottom est porté par .users-header-line */
+  color: #0f172a;
+}
+
+.users-audit-link {
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #f9fafb;
+  color: #111827;
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.users-audit-link:hover {
+  background: #e5e7eb;
+  border-color: #94a3b8;
+}
+
+/* Cartes (création + liste + édition) */
+.users-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+/* 👉 Carte spécifique pour la page "Modifier un utilisateur"
+     On limite la largeur et on centre, ce qui fixe la largeur max
+     des champs E-mail / MDP / Rôle / boutons. */
+.users-card-edit {
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.users-section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #111827;
+}
+
+/* Formulaire de création */
+.users-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 12px;
+  column-gap: 0;
+}
+
+@media (min-width: 768px) {
+  .users-form {
+    grid-template-columns: 2fr 2fr 1.5fr auto;
+    align-items: end;
+    column-gap: 30px;
+    row-gap: 10px;
+  }
+}
+
+.users-field label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 4px;
+}
+
+.users-field input,
+.users-field select {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 0.9rem;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f9fafb;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.users-field input:focus,
+.users-field select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+  background: #ffffff;
+}
+
+.users-submit {
+  margin-top: 4px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .users-submit {
+    width: auto;
+    padding-inline: 18px;
+  }
+}
+
+/* Liste des utilisateurs */
+
+.users-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 4px;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.users-table th,
+.users-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.users-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  background: #f9fafb;
+}
+
+.users-table tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.users-table tbody tr:hover {
+  background: #e5f0ff;
+}
+
+/* Colonne ACTIONS collée au contenu */
+.users-table th:last-child,
+.users-table td:last-child {
+  width: 1%;
+  white-space: nowrap;
+  padding-right: 4px;
+}
+
+/* Couleurs de rôle */
+
+.users-role {
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.users-role-admin {
+  color: #b91c1c;
+}
+
+.users-role-agent {
+  color: #0369a1;
+}
+
+.users-role-citizen {
+  color: #15803d;
+}
+
+/* (Ancien) select de rôle dans le tableau, laissé au cas où */
+.users-role-select {
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  min-width: 120px;
+}
+
+.users-role-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Colonne actions */
+
+.users-actions {
+  text-align: right;
+}
+
+.users-actions-buttons {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.users-edit-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 500;
+  transition: background-color 0.15s ease, transform 0.05s ease;
+}
+
+.users-edit-btn:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+.users-edit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.users-delete-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 500;
+  transition: background-color 0.15s ease, transform 0.05s ease;
+}
+
+.users-delete-btn:hover:not(:disabled) {
+  background: #fecaca;
+}
+
+.users-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* -------- Formulaire d'édition d'un utilisateur -------- */
+
+.users-edit-form {
+  width: 100%;
+  /* la largeur réelle est maintenant pilotée par .users-card-edit */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.users-edit-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.users-cancel-btn {
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #f9fafb;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #4b5563;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.users-cancel-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.users-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.users-edit-meta {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+/* Messages */
+
+.users-info {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.users-error {
+  font-size: 0.9rem;
+  color: #b91c1c;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+/* ===================== */
+/*   Journal d'audit     */
+/* ===================== */
+
+/* Formulaire de filtres */
+.audit-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 12px;
+  column-gap: 0;
+}
+
+.audit-filter-submit {
+  margin-top: 4px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .audit-filters {
+    grid-template-columns: 2fr 1fr 1fr auto; /* email / action / id / bouton */
+    align-items: end;
+    column-gap: 24px;
+  }
+
+  .audit-filter-submit {
+    width: auto;
+    padding-inline: 18px;
+  }
+}
+
+/* On aère un peu la zone "Dernières opérations" sur la page d'audit */
+.audit-page .users-card {
+  margin-bottom: 24px;
+}
+
+.audit-page .users-table-wrapper {
+  margin-top: 8px;
+}
+
+/* Table d'audit : on peut laisser les longues infos se casser
+   la ligne pour éviter un trop gros scroll horizontal */
+.audit-table th,
+.audit-table td {
+  white-space: nowrap;
+}
+
+.audit-table td:nth-child(5),
+.audit-table td:nth-child(6) {
+  /* Titre de l'acte + détails => autoriser le retour à la ligne */
+  white-space: normal;
+}
+
+/* Badge coloré pour l'action */
+.audit-action-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.audit-action-create {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.audit-action-update {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.audit-action-delete {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Pagination en bas du tableau */
+.audit-pagination {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.audit-pagination-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.audit-page-btn {
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #f9fafb;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #4b5563;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.audit-page-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #94a3b8;
+}
+
+.audit-page-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+

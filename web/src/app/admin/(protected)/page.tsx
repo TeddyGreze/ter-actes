@@ -25,8 +25,15 @@ type Acte = {
 type SortKey = 'titre' | 'date_publication' | 'type' | 'service'
 type SortDir = 'asc' | 'desc'
 
-const norm = (s?: string) => (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-const fmtDate = (iso?: string) => (iso ? new Intl.DateTimeFormat('fr-FR').format(new Date(iso)) : '')
+type Me = {
+  email: string
+  role: string
+}
+
+const norm = (s?: string) =>
+  (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const fmtDate = (iso?: string) =>
+  iso ? new Intl.DateTimeFormat('fr-FR').format(new Date(iso)) : ''
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -35,9 +42,12 @@ export default function AdminDashboard() {
   const [items, setItems] = useState<Acte[]>([])
   const [totalPages, setTotalPages] = useState<number | undefined>(undefined)
 
+  // info utilisateur connecté
+  const [me, setMe] = useState<Me | null>(null)
+
   // affichage
-  const [loading, setLoading] = useState(true)          // skeleton avant tout 1er rendu
-  const [refreshing, setRefreshing] = useState(false)   // rechargements doux
+  const [loading, setLoading] = useState(true) // skeleton avant tout 1er rendu
+  const [refreshing, setRefreshing] = useState(false) // rechargements doux
   const [hasDataOnce, setHasDataOnce] = useState(false) // devient true après le 1er fetch réussi
 
   // Filtres
@@ -63,17 +73,21 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const boot = async () => {
-      const me = await fetch(`${API}/admin/me`, {
+      const meRes = await fetch(`${API}/admin/me`, {
         credentials: 'include',
         cache: 'no-store',
         headers: { 'cache-control': 'no-cache', pragma: 'no-cache' },
       })
-      if (!me.ok) {
+      if (!meRes.ok) {
         toast.error('Session expirée')
         router.replace('/admin/login')
         return
       }
-      await load(1)                 // 1er fetch (skeleton visible)
+      // on stocke les infos de profil (email + rôle)
+      const meJson: Me = await meRes.json()
+      setMe(meJson)
+
+      await load(1) // 1er fetch (skeleton visible)
       bootedRef.current = true
     }
     boot()
@@ -83,7 +97,8 @@ export default function AdminDashboard() {
   async function load(p = page) {
     // Skeleton uniquement tant qu’on n’a jamais rendu de data
     const showSkeleton = !hasDataOnce
-    if (showSkeleton) setLoading(true); else setRefreshing(true)
+    if (showSkeleton) setLoading(true)
+    else setRefreshing(true)
 
     // Annule un fetch précédent
     abortRef.current?.abort()
@@ -138,13 +153,16 @@ export default function AdminDashboard() {
         toast.error('Erreur réseau')
       }
     } finally {
-      if (showSkeleton) setLoading(false); else setRefreshing(false)
+      if (showSkeleton) setLoading(false)
+      else setRefreshing(false)
     }
   }
 
   useEffect(() => {
     if (!bootedRef.current) return
-    const t = setTimeout(() => { load(1) }, 300)
+    const t = setTimeout(() => {
+      load(1)
+    }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, type, service, dateMin, dateMax])
@@ -158,18 +176,26 @@ export default function AdminDashboard() {
         headers: { 'cache-control': 'no-cache', pragma: 'no-cache' },
       })
     } catch {}
-    try { await fetch('/api/session/clear', { method: 'POST', cache: 'no-store' }) } catch {}
+    try {
+      await fetch('/api/session/clear', { method: 'POST', cache: 'no-store' })
+    } catch {}
     window.location.assign('/admin/login')
   }
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
-    else { setSortKey(key); setSortDir('asc') }
+    else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
   }
-  const sortArrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : '↕')
+  const sortArrow = (key: SortKey) =>
+    sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : '↕'
 
   const displayItems = useMemo(() => {
-    const nq = norm(q), nt = norm(type), ns = norm(service)
+    const nq = norm(q),
+      nt = norm(type),
+      ns = norm(service)
     const min = dateMin ? new Date(dateMin).getTime() : undefined
     const max = dateMax ? new Date(dateMax).getTime() : undefined
 
@@ -200,7 +226,7 @@ export default function AdminDashboard() {
     const arr = [...filtered]
     arr.sort((a, b) => {
       const get = (it: Acte, k: SortKey) =>
-        k === 'date_publication' ? (it.date_publication || it.created_at || '') : (it[k] || '')
+        k === 'date_publication' ? (it.date_publication || it.created_at || '') : it[k] || ''
       const A = get(a, sortKey).toString().toLowerCase()
       const B = get(b, sortKey).toString().toLowerCase()
       if (A < B) return sortDir === 'asc' ? -1 : 1
@@ -211,7 +237,8 @@ export default function AdminDashboard() {
   }, [items, q, type, service, dateMin, dateMax, sortKey, sortDir, advFilter])
 
   const hasPrev = page > 1
-  const hasNext = typeof totalPages === 'number' ? page < totalPages : items.length === PAGE_SIZE
+  const hasNext =
+    typeof totalPages === 'number' ? page < totalPages : items.length === PAGE_SIZE
 
   const onDelete = async (id: number) => {
     if (!confirm('Voulez-vous vraiment supprimer cet acte ?')) return
@@ -221,8 +248,12 @@ export default function AdminDashboard() {
       cache: 'no-store',
       headers: { 'cache-control': 'no-cache', pragma: 'no-cache' },
     })
-    if (res.ok) { toast.success('Acte supprimé'); load(page) }
-    else { toast.error('Échec de la suppression') }
+    if (res.ok) {
+      toast.success('Acte supprimé')
+      load(page)
+    } else {
+      toast.error('Échec de la suppression')
+    }
   }
 
   // visibilité contrôlée pour éviter tout flash
@@ -235,9 +266,23 @@ export default function AdminDashboard() {
       <div className="admin-topbar">
         <h1 className="admin-title">Tableau de bord - Actes</h1>
         <div className="admin-actions">
-          <Link href="/admin/upload" className="btn-primary">+ Ajouter un acte</Link>
-          <Link href="/admin/upload/upload-multiple" className="btn-primary">+ Ajout multiple </Link>
-          <button onClick={logout} className="btn-ghost">Se déconnecter</button>
+          <Link href="/admin/upload" className="btn-primary">
+            + Ajouter un acte
+          </Link>
+          <Link href="/admin/upload/upload-multiple" className="btn-primary">
+            + Ajout multiple
+          </Link>
+
+          {/* Lien visible uniquement pour les administrateurs */}
+          {me?.role === 'admin' && (
+            <Link href="/admin/users" className="btn-ghost admin-users-btn">
+              Gestion des utilisateurs
+            </Link>
+          )}
+
+          <button onClick={logout} className="btn-ghost">
+            Se déconnecter
+          </button>
         </div>
       </div>
 
@@ -245,23 +290,48 @@ export default function AdminDashboard() {
       <div className="admin-filters">
         <div className="f-field">
           <label>Recherche</label>
-          <input className="f-input" value={q} onChange={e=>setQ(e.target.value)} placeholder="Mots-clés…" />
+          <input
+            className="f-input"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Mots-clés…"
+          />
         </div>
         <div className="f-field">
           <label>Type</label>
-          <input className="f-input" value={type} onChange={e=>setType(e.target.value)} placeholder="Arrêté, Délibération…" />
+          <input
+            className="f-input"
+            value={type}
+            onChange={e => setType(e.target.value)}
+            placeholder="Arrêté, Délibération…"
+          />
         </div>
         <div className="f-field">
           <label>Service</label>
-          <input className="f-input" value={service} onChange={e=>setService(e.target.value)} placeholder="Voirie, Culture…" />
+          <input
+            className="f-input"
+            value={service}
+            onChange={e => setService(e.target.value)}
+            placeholder="Voirie, Culture…"
+          />
         </div>
         <div className="f-field">
           <label>Date min</label>
-          <input className="f-input" type="date" value={dateMin} onChange={e=>setDateMin(e.target.value)} />
+          <input
+            className="f-input"
+            type="date"
+            value={dateMin}
+            onChange={e => setDateMin(e.target.value)}
+          />
         </div>
         <div className="f-field">
           <label>Date max</label>
-          <input className="f-input" type="date" value={dateMax} onChange={e=>setDateMax(e.target.value)} />
+          <input
+            className="f-input"
+            type="date"
+            value={dateMax}
+            onChange={e => setDateMax(e.target.value)}
+          />
         </div>
       </div>
 
@@ -280,24 +350,43 @@ export default function AdminDashboard() {
         aria-busy={loading || refreshing ? 'true' : undefined}
       >
         <div className="t-row t-head" role="row">
-          <div className={`t-cell t-th ${sortKey==='titre'?'active':''}`} role="columnheader" tabIndex={0}
-               onClick={()=>toggleSort('titre')}
-               onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('titre')}>
+          <div
+            className={`t-cell t-th ${sortKey === 'titre' ? 'active' : ''}`}
+            role="columnheader"
+            tabIndex={0}
+            onClick={() => toggleSort('titre')}
+            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleSort('titre')}
+          >
             <span>Nom</span> <span className="sort">{sortArrow('titre')}</span>
           </div>
-          <div className={`t-cell t-th ${sortKey==='date_publication'?'active':''}`} role="columnheader" tabIndex={0}
-               onClick={()=>toggleSort('date_publication')}
-               onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('date_publication')}>
-            <span>Publication</span> <span className="sort">{sortArrow('date_publication')}</span>
+          <div
+            className={`t-cell t-th ${sortKey === 'date_publication' ? 'active' : ''}`}
+            role="columnheader"
+            tabIndex={0}
+            onClick={() => toggleSort('date_publication')}
+            onKeyDown={e =>
+              (e.key === 'Enter' || e.key === ' ') && toggleSort('date_publication')
+            }
+          >
+            <span>Publication</span>{' '}
+            <span className="sort">{sortArrow('date_publication')}</span>
           </div>
-          <div className={`t-cell t-th ${sortKey==='type'?'active':''}`} role="columnheader" tabIndex={0}
-               onClick={()=>toggleSort('type')}
-               onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('type')}>
+          <div
+            className={`t-cell t-th ${sortKey === 'type' ? 'active' : ''}`}
+            role="columnheader"
+            tabIndex={0}
+            onClick={() => toggleSort('type')}
+            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleSort('type')}
+          >
             <span>Type</span> <span className="sort">{sortArrow('type')}</span>
           </div>
-          <div className={`t-cell t-th ${sortKey==='service'?'active':''}`} role="columnheader" tabIndex={0}
-               onClick={()=>toggleSort('service')}
-               onKeyDown={e=> (e.key==='Enter' || e.key===' ') && toggleSort('service')}>
+          <div
+            className={`t-cell t-th ${sortKey === 'service' ? 'active' : ''}`}
+            role="columnheader"
+            tabIndex={0}
+            onClick={() => toggleSort('service')}
+            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleSort('service')}
+          >
             <span>Service</span> <span className="sort">{sortArrow('service')}</span>
           </div>
           <div className="t-cell t-th t-actions">Actions</div>
@@ -306,10 +395,18 @@ export default function AdminDashboard() {
         {loading ? (
           Array.from({ length: 10 }).map((_, i) => (
             <div key={i} className="t-row" role="row" aria-hidden="true">
-              <div className="t-cell t-name" role="cell"><Skeleton className="skel-line" style={{ width: '60%' }} /></div>
-              <div className="t-cell" role="cell"><Skeleton className="skel-line" style={{ width: 90 }} /></div>
-              <div className="t-cell" role="cell"><Skeleton className="skel-line" style={{ width: 120 }} /></div>
-              <div className="t-cell" role="cell"><Skeleton className="skel-line" style={{ width: 130 }} /></div>
+              <div className="t-cell t-name" role="cell">
+                <Skeleton className="skel-line" style={{ width: '60%' }} />
+              </div>
+              <div className="t-cell" role="cell">
+                <Skeleton className="skel-line" style={{ width: 90 }} />
+              </div>
+              <div className="t-cell" role="cell">
+                <Skeleton className="skel-line" style={{ width: 120 }} />
+              </div>
+              <div className="t-cell" role="cell">
+                <Skeleton className="skel-line" style={{ width: 130 }} />
+              </div>
               <div className="t-cell t-actions" role="cell">
                 <Skeleton className="skel-btn" />
                 <div className="a-row">
@@ -326,20 +423,39 @@ export default function AdminDashboard() {
               return (
                 <div key={a.id} className="t-row" role="row">
                   <div className="t-cell t-name" role="cell">
-                    <span className="t-title" title={a.titre}>{a.titre}</span>
+                    <span className="t-title" title={a.titre}>
+                      {a.titre}
+                    </span>
                     <div className="t-meta-mobile">
                       <div className="m-date">{fmtDate(date)}</div>
-                      <div className="m-inline">{a.type || '—'} · {a.service || '—'}</div>
+                      <div className="m-inline">
+                        {a.type || '—'} · {a.service || '—'}
+                      </div>
                     </div>
                   </div>
-                  <div className="t-cell" role="cell">{fmtDate(date)}</div>
-                  <div className="t-cell" role="cell">{a.type || '—'}</div>
-                  <div className="t-cell" role="cell">{a.service || '—'}</div>
+                  <div className="t-cell" role="cell">
+                    {fmtDate(date)}
+                  </div>
+                  <div className="t-cell" role="cell">
+                    {a.type || '—'}
+                  </div>
+                  <div className="t-cell" role="cell">
+                    {a.service || '—'}
+                  </div>
                   <div className="t-cell t-actions" role="cell">
-                    <Link href={`/acte/${a.id}?from=admin`} className="btn-outline btn-open">Ouvrir</Link>
+                    <Link
+                      href={`/acte/${a.id}?from=admin`}
+                      className="btn-outline btn-open"
+                    >
+                      Ouvrir
+                    </Link>
                     <div className="a-row">
-                      <Link href={`/admin/actes/${a.id}/edit`} className="btn-outline">Modifier</Link>
-                      <button onClick={()=>onDelete(a.id)} className="btn-danger">Supprimer</button>
+                      <Link href={`/admin/actes/${a.id}/edit`} className="btn-outline">
+                        Modifier
+                      </Link>
+                      <button onClick={() => onDelete(a.id)} className="btn-danger">
+                        Supprimer
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -348,8 +464,16 @@ export default function AdminDashboard() {
 
             {showEmpty && (
               <div className="t-row" role="row" aria-live="polite">
-                <div className="t-cell t-empty" role="cell"
-                     style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '14px 8px', color: '#64748b' }}>
+                <div
+                  className="t-cell t-empty"
+                  role="cell"
+                  style={{
+                    gridColumn: '1 / -1',
+                    textAlign: 'center',
+                    padding: '14px 8px',
+                    color: '#64748b',
+                  }}
+                >
                   Aucun acte trouvé...
                 </div>
               </div>
@@ -362,16 +486,45 @@ export default function AdminDashboard() {
       {showPager && (
         <nav className="pager-wrap" aria-label="Pagination">
           <div className="pager-pill" role="group" aria-hidden={refreshing ? 'true' : 'false'}>
-            <button type="button" onClick={()=> page>1 && load(1)} disabled={page<=1} title="Première">««</button>
-            <button type="button" onClick={()=> page>1 && load(page-1)} disabled={page<=1} title="Précédente">‹</button>
-            <span className="count">{typeof totalPages==='number' ? `Page ${page} / ${totalPages}` : `Page ${page}`}</span>
-            <button type="button" onClick={()=> hasNext && load(page+1)} disabled={!hasNext} title="Suivante">›</button>
             <button
               type="button"
-              onClick={()=> typeof totalPages==='number' && page!==totalPages && load(totalPages!)}
-              disabled={typeof totalPages!=='number' || page===totalPages}
+              onClick={() => page > 1 && load(1)}
+              disabled={page <= 1}
+              title="Première"
+            >
+              ««
+            </button>
+            <button
+              type="button"
+              onClick={() => page > 1 && load(page - 1)}
+              disabled={page <= 1}
+              title="Précédente"
+            >
+              ‹
+            </button>
+            <span className="count">
+              {typeof totalPages === 'number'
+                ? `Page ${page} / ${totalPages}`
+                : `Page ${page}`}
+            </span>
+            <button
+              type="button"
+              onClick={() => hasNext && load(page + 1)}
+              disabled={!hasNext}
+              title="Suivante"
+            >
+              ›
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                typeof totalPages === 'number' && page !== totalPages && load(totalPages!)
+              }
+              disabled={typeof totalPages !== 'number' || page === totalPages}
               title="Dernière"
-            >»»</button>
+            >
+              »»
+            </button>
           </div>
         </nav>
       )}

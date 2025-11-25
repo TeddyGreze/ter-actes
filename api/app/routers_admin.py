@@ -15,6 +15,7 @@ from fastapi import (
     status,
     Query,
 )
+# OAuth2PasswordRequestForm.username = email
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import Session
@@ -22,14 +23,24 @@ from pydantic import BaseModel, ValidationError
 
 from .config import settings
 from .database import get_db
-from .models import Acte, User
-from .models_refs import ActType, Service  # référentiels connus (types/services)
-from .schemas import TokenOut, ActeOut, AnalysePDFOut
+from .models import Acte, User, AuditLog
+from .models_refs import ActType, Service
+from .schemas import (
+    TokenOut,
+    ActeOut,
+    AnalysePDFOut,
+    UserOut,
+    UserCreate,
+    UserRoleUpdate,
+    UserUpdate,
+    AuditEntryOut,
+)
 from .auth import (
     get_password_hash,
     verify_password,
     create_access_token,
     get_current_user,
+    require_admin,
 )
 from .utils import save_pdf_validated
 from .pdf_utils import (
@@ -118,6 +129,27 @@ def _auto_metadata_from_text(text: str, db: Session):
     return date_auto, service_auto, type_auto
 
 
+def _log_acte_action(
+    db: Session,
+    *,
+    acte: Optional[Acte],
+    user,
+    action: str,
+    detail: Optional[str] = None,
+):
+    """
+    Enregistre une entrée dans le journal d'audit pour un acte.
+    - action : "create", "update", "delete"
+    """
+    log = AuditLog(
+        acte_id=acte.id if acte is not None else None,
+        user_id=getattr(user, "id", None),
+        action=action,
+        detail=detail,
+    )
+    db.add(log)
+
+
 class BulkActeCreate(BaseModel):
     """
     Données d’un acte pour la création multiple.
@@ -146,12 +178,17 @@ def login(
     """
     ensure_admin(db)
 
+    # username = email
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
 
     expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    token = create_access_token({"sub": user.email}, expires_delta=expires)
+    # On encode aussi le rôle dans le token (utile si besoin plus tard)
+    token = create_access_token(
+        {"sub": user.email, "role": user.role},
+        expires_delta=expires,
+    )
 
     response.set_cookie(
         key="access_token",
@@ -289,6 +326,16 @@ async def admin_create_actes_bulk(
         )
         db.add(acte)
         db.flush()   # pour récupérer l'id sans commit à chaque fois
+
+        # journal d'audit : création via upload multiple
+        _log_acte_action(
+            db,
+            acte=acte,
+            user=user,
+            action="create",
+            detail="Création via upload multiple",
+        )
+
         created_ids.append(acte.id)
 
     db.commit()
@@ -394,6 +441,17 @@ async def create_acte_one_shot(
     )
 
     db.add(acte)
+    db.flush()  # pour avoir acte.id avant le commit
+
+    # journal d'audit : création depuis le formulaire simple
+    _log_acte_action(
+        db,
+        acte=acte,
+        user=user,
+        action="create",
+        detail="Création depuis le formulaire simple",
+    )
+
     db.commit()
     db.refresh(acte)
     return {"id": acte.id, "detail": "created"}
@@ -449,6 +507,15 @@ async def admin_update_acte(
         fulltxt = extract_text_with_ocr_if_needed(raw_bytes)
         acte.fulltext_content = fulltxt
 
+    # journal d'audit : mise à jour
+    _log_acte_action(
+        db,
+        acte=acte,
+        user=user,
+        action="update",
+        detail="Mise à jour des métadonnées ou du PDF",
+    )
+
     db.add(acte)
     db.commit()
     db.refresh(acte)
@@ -468,8 +535,254 @@ def admin_delete_acte(
     if not acte:
         raise HTTPException(status_code=404, detail="Not found")
 
+    # journal d'audit : suppression
+    _log_acte_action(
+        db,
+        acte=acte,
+        user=user,
+        action="delete",
+        detail="Suppression de l'acte",
+    )
+
     _delete_file_if_exists(acte.pdf_path)
 
     db.delete(acte)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ---------- Journal d'audit (Admin only) ----------
+
+@router.get("/audit", response_model=List[AuditEntryOut])
+@router.get("/audit-logs", response_model=List[AuditEntryOut])
+def list_audit_logs_admin(
+    email: Optional[str] = Query(default=None),
+    action: Optional[str] = Query(default=None),
+    acte_id: Optional[int] = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    Consultation du journal d'audit des actes :
+    qui a créé / modifié / supprimé quel acte, et quand.
+    Filtres possibles :
+      - email : filtre sur l'e-mail de l'agent/admin
+      - action : "create" / "update" / "delete"
+      - acte_id : id de l'acte concerné
+    Réservé aux administrateurs.
+    """
+    stmt = (
+        select(AuditLog, Acte.titre, User.email)
+        .outerjoin(Acte, AuditLog.acte_id == Acte.id)
+        .outerjoin(User, AuditLog.user_id == User.id)
+    )
+
+    conds = []
+    if email:
+        like = f"%{email}%"
+        conds.append(User.email.ilike(like))
+    if action:
+        conds.append(AuditLog.action == action)
+    if acte_id is not None:
+        conds.append(AuditLog.acte_id == acte_id)
+
+    if conds:
+        stmt = stmt.where(and_(*conds))
+
+    stmt = (
+        stmt.order_by(AuditLog.created_at.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+
+    rows = db.execute(stmt).all()
+
+    entries: List[AuditEntryOut] = []
+    for log, acte_titre, user_email in rows:
+        entries.append(
+            AuditEntryOut(
+                id=log.id,
+                action=log.action,
+                acte_id=log.acte_id,
+                acte_titre=acte_titre,
+                user_email=user_email,
+                created_at=log.created_at,
+            )
+        )
+
+    return entries
+
+
+# ---------- Gestion des utilisateurs (Admin only) ----------
+
+@router.get("/users", response_model=List[UserOut])
+def list_users_admin(
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    Liste des utilisateurs (admins et agents).
+    Réservé aux administrateurs.
+    """
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    return users
+
+
+@router.post("/users", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+def create_user_admin(
+    payload: UserCreate,
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    Création d'un utilisateur (admin ou agent) par un administrateur.
+    """
+    existing = db.query(User).filter(User.email == payload.email).first()
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Un utilisateur avec cet e-mail existe déjà.",
+        )
+
+    user = User(
+        email=payload.email,
+        password_hash=get_password_hash(payload.password),
+        role=payload.role,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.get("/users/{user_id}", response_model=UserOut)
+def get_user_admin(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    Récupère un utilisateur par son id (pour la page d'édition).
+    """
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Utilisateur introuvable.",
+        )
+    return user
+
+
+@router.put("/users/{user_id}", response_model=UserOut)
+def update_user_admin(
+    user_id: int,
+    payload: UserUpdate,
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    Mise à jour complète d'un utilisateur (email, mot de passe, rôle).
+    - email : vérifie l'unicité si changé
+    - password : si fourni, on régénère le hash
+    - role : si fourni, interdit de changer son propre rôle
+    """
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Utilisateur introuvable.",
+        )
+
+    # email
+    if payload.email is not None and payload.email != user.email:
+        existing = (
+            db.query(User)
+            .filter(User.email == payload.email, User.id != user_id)
+            .first()
+        )
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail="Un utilisateur avec cet e-mail existe déjà.",
+            )
+        user.email = payload.email
+
+    # mot de passe
+    if payload.password is not None:
+        user.password_hash = get_password_hash(payload.password)
+
+    # rôle (on ne change pas son propre rôle)
+    if payload.role is not None and payload.role != user.role:
+        if admin.id == user.id:
+            raise HTTPException(
+                status_code=400,
+                detail="Vous ne pouvez pas modifier votre propre rôle.",
+            )
+        user.role = payload.role
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.put("/users/{user_id}/role", response_model=UserOut)
+def update_user_role_admin(
+    user_id: int,
+    payload: UserRoleUpdate,
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    Mise à jour du rôle d'un utilisateur (admin uniquement).
+    Gardé pour compatibilité, même si la page d'édition utilise maintenant
+    PUT /admin/users/{id}. Seuls les rôles admin/agent sont acceptés.
+    """
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Utilisateur introuvable.",
+        )
+
+    if admin.id == user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Vous ne pouvez pas modifier votre propre rôle.",
+        )
+
+    user.role = payload.role
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user_admin(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    Suppression d'un utilisateur (admin uniquement).
+    On interdit de supprimer son propre compte.
+    """
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Utilisateur introuvable.",
+        )
+
+    if user.id == admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Vous ne pouvez pas supprimer votre propre compte.",
+        )
+
+    db.delete(user)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

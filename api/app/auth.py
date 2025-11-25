@@ -85,3 +85,25 @@ def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+# ========== Helpers de rôle ==========
+
+def require_admin(user: User = Depends(get_current_user)) -> User:
+    """
+    Dépendance FastAPI : garantit que l'utilisateur courant est un administrateur.
+    """
+    if getattr(user, "role", None) != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès réservé aux administrateurs.",
+        )
+    return user
+
+
+def require_any_user(user: User = Depends(get_current_user)) -> User:
+    """
+    Dépendance générique si un jour on veut gérer d'autres états (compte désactivé, etc.).
+    Pour l'instant, c'est juste un alias de get_current_user.
+    """
+    return user
