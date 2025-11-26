@@ -24,13 +24,22 @@ export default function AdminUpload() {
   const [types, setTypes] = useState<string[]>([]);
   const [services, setServices] = useState<string[]>([]);
 
+  const getTodayISO = () => {
+    const d = new Date()
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+  const today = getTodayISO()
+
+
   const [form, setForm] = useState<Record<string, string>>({
     titre: '',
     type: '',
     service: '',
     date_signature: '',
-    date_publication: '',
-    statut: '',
+    date_publication: today,
   });
 
   // gestion champ personnalisé "Autre…"
@@ -201,7 +210,6 @@ export default function AdminUpload() {
     if (finalService) fd.set('service', finalService);
     if (form.date_signature) fd.set('date_signature', form.date_signature);
     if (form.date_publication) fd.set('date_publication', form.date_publication);
-    if (form.statut) fd.set('statut', form.statut);
 
     // fichier PDF
     fd.set('pdf', file);
@@ -221,7 +229,7 @@ export default function AdminUpload() {
     }
 
     const data = await res.json();
-    setMsg('Acte créé (id=' + data.id + ')');
+    setMsg('Acte créé');
     setSubmitting(false);
 
     // reset complet du formulaire après succès
@@ -230,8 +238,7 @@ export default function AdminUpload() {
       type: '',
       service: '',
       date_signature: '',
-      date_publication: '',
-      statut: '',
+      date_publication: today,
     });
     setUseCustomType(false);
     setCustomType('');
@@ -253,7 +260,7 @@ export default function AdminUpload() {
   return (
     <main className="upload-shell">
       <div className="upload-wrap">
-        <Link href="/admin" className="u-back">← Retour</Link>
+        <Link href="/admin" className="u-back">← Tableau de bord</Link>
 
         <div className="upload-card">
           <h1 className="u-title">Dépôt d’un acte</h1>
@@ -261,7 +268,7 @@ export default function AdminUpload() {
           <form onSubmit={submit} className="u-form">
             {/* Titre */}
             <div className="u-field">
-              <label htmlFor="titre">Titre</label>
+              <label htmlFor="titre">Titre *</label>
               <input
                 id="titre"
                 className="u-input"
@@ -273,7 +280,7 @@ export default function AdminUpload() {
 
             {/* Type d'acte */}
             <div className="u-field">
-              <label htmlFor="type">Type d’acte</label>
+              <label htmlFor="type">Type d’acte *</label>
               {!useCustomType ? (
                 <select
                   id="type"
@@ -303,6 +310,7 @@ export default function AdminUpload() {
                     placeholder="Saisir un type"
                     value={customType}
                     onChange={(e) => setCustomType(e.target.value)}
+                    required
                   />
                   <button
                     type="button"
@@ -317,7 +325,7 @@ export default function AdminUpload() {
 
             {/* Service */}
             <div className="u-field">
-              <label htmlFor="service">Service</label>
+              <label htmlFor="service">Service *</label>
               {!useCustomService ? (
                 <select
                   id="service"
@@ -374,30 +382,20 @@ export default function AdminUpload() {
 
             {/* Date publication */}
             <div className="u-field">
-              <label htmlFor="datepub">Date de publication</label>
+              <label htmlFor="datepub">Date de publication *</label>
               <input
                 id="datepub"
                 type="date"
                 className="u-input"
                 value={form.date_publication}
                 onChange={(e) => setForm({ ...form, date_publication: e.target.value })}
-              />
-            </div>
-
-            {/* Statut */}
-            <div className="u-field">
-              <label htmlFor="statut">Statut</label>
-              <input
-                id="statut"
-                className="u-input"
-                value={form.statut}
-                onChange={(e) => setForm({ ...form, statut: e.target.value })}
+                required
               />
             </div>
 
             {/* Fichier PDF */}
             <div className="u-field">
-              <label htmlFor="pdf">PDF</label>
+              <label htmlFor="pdf">PDF *</label>
               <input
                 id="pdf"
                 ref={fileInputRef}
