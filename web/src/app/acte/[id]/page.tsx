@@ -93,11 +93,12 @@ export default function ActePage() {
           fitModeDefault="page"
           extraActions={
             <button
+              title="Envoyer le PDF par e-mail"
               type="button"
               className="pdfbtn pdfbtn-primary acte-email-toolbar-btn"
               onClick={() => setShowEmailModal(true)}
             >
-              Envoyer par e-mail
+              🖂 Envoyer par e-mail
             </button>
           }
         />
