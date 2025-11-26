@@ -90,7 +90,7 @@ export default function BulkUploadPage() {
           serviceChoice: '',
           serviceCustom: '',
           date_signature: '',
-          date_publication: today, // 🔹 par défaut : date du jour
+          date_publication: today, // par défaut : date du jour
           pdf: file,
         }
 
@@ -139,7 +139,6 @@ export default function BulkUploadPage() {
           }
         } catch (err) {
           console.error('Erreur analyse PDF', err)
-          // on n'empêche pas la création de la ligne
         }
 
         newRows.push(row)
@@ -164,7 +163,7 @@ export default function BulkUploadPage() {
       prev.map((r, i) => {
         if (i !== idx) return r
         if (value === '__other__') {
-          // on bascule en mode "autre", on garde ce qui est éventuellement dans typeCustom
+          // on bascule en mode "autre"
           return {
             ...r,
             typeChoice: value,
@@ -291,7 +290,7 @@ export default function BulkUploadPage() {
       <div className="admin-topbar">
         <div className="admin-breadcrumb">
           <Link href="/admin" className="link-back">
-            ← Retour
+            ← Tableau de bord
           </Link>
         </div>
         <h1 className="admin-title">Dépôt multiple d&apos;actes</h1>
@@ -334,7 +333,7 @@ export default function BulkUploadPage() {
               <legend>Acte #{idx + 1}</legend>
 
               <div className="f-field">
-                <label>Titre</label>
+                <label>Titre *</label>
                 <input
                   className="f-input"
                   value={row.titre}
@@ -345,7 +344,7 @@ export default function BulkUploadPage() {
 
               {/* Type d'acte : liste + "Autre…" */}
               <div className="f-field">
-                <label>Type d&apos;acte</label>
+                <label>Type d&apos;acte *</label>
                 <select
                   className="f-input"
                   value={row.typeChoice || (KNOWN_TYPES.includes(row.type) ? row.type : row.type ? '__other__' : '')}
@@ -376,7 +375,7 @@ export default function BulkUploadPage() {
 
               {/* Service : liste + "Autre…" */}
               <div className="f-field">
-                <label>Service</label>
+                <label>Service *</label>
                 <select
                   className="f-input"
                   value={
@@ -415,12 +414,11 @@ export default function BulkUploadPage() {
                   type="date"
                   value={row.date_signature}
                   onChange={e => updateRow(idx, { date_signature: e.target.value })}
-                  required
                 />
               </div>
 
               <div className="f-field">
-                <label>Date de publication</label>
+                <label>Date de publication *</label>
                 <input
                   className="f-input"
                   type="date"
