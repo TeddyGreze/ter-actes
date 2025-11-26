@@ -55,7 +55,7 @@ def get_current_user(
       1) de l'en-tête Authorization: Bearer <token>, si présent
       2) sinon, du cookie 'access_token'
     """
-    # 1) En-tête Authorization (si fourni)
+    # 1) En-tête Authorization
     token = _normalize_bearer(token)
 
     # 2) Fallback cookie

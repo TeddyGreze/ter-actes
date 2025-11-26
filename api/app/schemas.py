@@ -40,7 +40,7 @@ class TokenOut(BaseModel):
 
 # ========== Utilisateurs (admin/agents/citoyens) ==========
 
-# Type global possible en base (on garde citizen si besoin plus tard)
+# Type global possible en base
 RoleType = Literal["admin", "agent", "citizen"]
 
 # Rôles que l'interface d'administration est autorisée à attribuer

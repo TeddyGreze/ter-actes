@@ -216,9 +216,9 @@ export default function PDFViewer({
     return () => el.removeEventListener('wheel', onWheel)
   }, [numPages])
 
-  // ----------------------------------------------------
-  // Télécharger le PDF avec le bon nom
-  // ----------------------------------------------------
+  // ---------------------
+  // Télécharger le PDF
+  // ---------------------
   const downloadPdf = async () => {
     try {
       if (file) {

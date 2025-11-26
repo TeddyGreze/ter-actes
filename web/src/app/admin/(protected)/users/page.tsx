@@ -41,6 +41,19 @@ export default function AdminUsersPage() {
 
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null)
 
+  // Pagination locale
+  const [page, setPage] = useState(1)
+  const pageSize = 16
+
+  // Filtres
+  const [filterEmail, setFilterEmail] = useState('')
+  const [filterRole, setFilterRole] = useState<'' | UserRole>('')
+
+  // Revenir à la page 1 dès que les filtres changent
+  useEffect(() => {
+    setPage(1)
+  }, [filterEmail, filterRole])
+
   // Chargement initial : vérifier que l'on est admin + récupérer les users
   useEffect(() => {
     const boot = async () => {
@@ -90,6 +103,11 @@ export default function AdminUsersPage() {
         ? data
         : data.items ?? data.users ?? []) as UserRow[]
       setUsers(arr)
+
+      const totalPages = Math.max(1, Math.ceil(arr.length / pageSize))
+      if (page > totalPages) {
+        setPage(totalPages)
+      }
     } catch (err) {
       console.error(err)
       setError('Erreur réseau lors du chargement.')
@@ -121,29 +139,24 @@ export default function AdminUsersPage() {
         try {
           const data = JSON.parse(txt)
 
-          // Cas standard FastAPI : {"detail": "..."}
           if (typeof data.detail === 'string') {
             message = data.detail
-          }
-          // Cas validation Pydantic : {"detail": [{ msg: "...", ... }]}
-          else if (Array.isArray(data.detail) && data.detail[0]?.msg) {
+          } else if (Array.isArray(data.detail) && data.detail[0]?.msg) {
             const rawMsg: string = data.detail[0].msg
-
             const lower = rawMsg.toLowerCase()
 
             if (lower.includes('valid email')) {
-              // Erreur sur EmailStr
               message = 'Adresse e-mail invalide.'
-            } else if (lower.includes('at least 6 characters') || lower.includes('6 characters')) {
-              // Erreur sur la longueur minimale du mot de passe
+            } else if (
+              lower.includes('at least 6 characters') ||
+              lower.includes('6 characters')
+            ) {
               message = 'Le mot de passe doit contenir au moins 6 caractères.'
             } else {
-              // Fallback : on affiche le message brut
               message = rawMsg
             }
           }
         } catch {
-          // body pas en JSON -> on garde le message générique
         }
 
         toast.error(message)
@@ -189,13 +202,18 @@ export default function AdminUsersPage() {
           const data = JSON.parse(txt)
           if (data.detail) message = data.detail
         } catch {
-          // ignore
         }
         toast.error(message)
         return
       }
 
-      setUsers(prev => prev.filter(u => u.id !== user.id))
+      setUsers(prev => {
+        const updated = prev.filter(u => u.id !== user.id)
+        const totalPages = Math.max(1, Math.ceil(updated.length / pageSize))
+        setPage(p => Math.min(p, totalPages))
+        return updated
+      })
+
       toast.success('Utilisateur supprimé.')
     } catch (err) {
       console.error(err)
@@ -205,9 +223,37 @@ export default function AdminUsersPage() {
     }
   }
 
+  // Filtres appliqués côté front
+  const filteredUsers = users.filter(u => {
+    if (filterEmail.trim()) {
+      const needle = filterEmail.trim().toLowerCase()
+      if (!u.email.toLowerCase().includes(needle)) return false
+    }
+    if (filterRole && u.role !== filterRole) {
+      return false
+    }
+    return true
+  })
+
+  // Données paginées sur la liste filtrée
+  const totalPages =
+    filteredUsers.length > 0
+      ? Math.max(1, Math.ceil(filteredUsers.length / pageSize))
+      : 1
+  const currentPage = Math.min(page, totalPages)
+  const startIndex = (currentPage - 1) * pageSize
+  const pageUsers = filteredUsers.slice(startIndex, startIndex + pageSize)
+
+  const handlePrevPage = () => {
+    setPage(p => Math.max(1, p - 1))
+  }
+
+  const handleNextPage = () => {
+    setPage(p => Math.min(totalPages, p + 1))
+  }
+
   return (
     <main className="admin-wrap admin-users-page">
-      {/* ligne retour + info utilisateur */}
       <div className="users-backline">
         <Link href="/admin" className="a-link">
           &larr; Tableau de bord
@@ -219,7 +265,6 @@ export default function AdminUsersPage() {
         )}
       </div>
 
-      {/* Titre + bouton vers le journal d'audit */}
       <div className="users-header-line">
         <h1 className="users-title">Gestion des utilisateurs</h1>
         <Link href="/admin/audit-logs" className="users-audit-link">
@@ -227,7 +272,6 @@ export default function AdminUsersPage() {
         </Link>
       </div>
 
-      {/* Carte : création */}
       <section className="users-card" aria-labelledby="users-create-title">
         <h2 id="users-create-title" className="users-section-title">
           Créer un utilisateur
@@ -278,11 +322,37 @@ export default function AdminUsersPage() {
         </form>
       </section>
 
-      {/* Carte : liste */}
       <section className="users-card" aria-labelledby="users-list-title">
         <h2 id="users-list-title" className="users-section-title">
           Liste des utilisateurs
         </h2>
+
+        {/* Filtres sur la liste */}
+        <div className="users-filters">
+          <div className="users-field">
+            <label htmlFor="filter-email">Filtrer par e-mail</label>
+            <input
+              id="filter-email"
+              type="text"
+              value={filterEmail}
+              onChange={e => setFilterEmail(e.target.value)}
+              placeholder="ex : agent@ville.fr"
+            />
+          </div>
+
+          <div className="users-field">
+            <label htmlFor="filter-role">Filtrer par rôle</label>
+            <select
+              id="filter-role"
+              value={filterRole}
+              onChange={e => setFilterRole(e.target.value as '' | UserRole)}
+            >
+              <option value="">Tous les rôles</option>
+              <option value="agent">Agent</option>
+              <option value="admin">Administrateur</option>
+            </select>
+          </div>
+        </div>
 
         {loading ? (
           <p className="users-info">Chargement…</p>
@@ -290,66 +360,96 @@ export default function AdminUsersPage() {
           <p className="users-error">{error}</p>
         ) : users.length === 0 ? (
           <p className="users-info">Aucun utilisateur pour le moment.</p>
+        ) : filteredUsers.length === 0 ? (
+          <p className="users-info">
+            Aucun utilisateur ne correspond aux filtres.
+          </p>
         ) : (
-          <div className="users-table-wrapper">
-            <table className="users-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>E-mail</th>
-                  <th>Rôle</th>
-                  <th>Créé le</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u => {
-                  const isMe = me && me.email === u.email
-                  const deleteDisabled =
-                    deletingUserId === u.id || !!isMe
+          <>
+            <div className="users-table-wrapper">
+              <table className="users-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>E-mail</th>
+                    <th>Rôle</th>
+                    <th>Créé le</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageUsers.map(u => {
+                    const isMe = me && me.email === u.email
+                    const deleteDisabled =
+                      deletingUserId === u.id || !!isMe
 
-                  return (
-                    <tr key={u.id}>
-                      <td>{u.id}</td>
-                      <td>{u.email}</td>
-                      <td className={`users-role users-role-${u.role}`}>
-                        {u.role}
-                      </td>
-                      <td>
-                        {new Intl.DateTimeFormat('fr-FR', {
-                          dateStyle: 'short',
-                          timeStyle: 'short',
-                        }).format(new Date(u.created_at))}
-                      </td>
-                      <td className="users-actions">
-                        <div className="users-actions-buttons">
-                          <button
-                            type="button"
-                            className="users-edit-btn"
-                            onClick={() =>
-                              router.push(`/admin/users/${u.id}`)
-                            }
-                          >
-                            Modifier
-                          </button>
-                          <button
-                            type="button"
-                            className="users-delete-btn"
-                            disabled={deleteDisabled}
-                            onClick={() => handleDeleteUser(u)}
-                          >
-                            {deletingUserId === u.id
-                              ? 'Suppression…'
-                              : 'Supprimer'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                    return (
+                      <tr key={u.id}>
+                        <td>{u.id}</td>
+                        <td>{u.email}</td>
+                        <td className={`users-role users-role-${u.role}`}>
+                          {u.role}
+                        </td>
+                        <td>
+                          {new Intl.DateTimeFormat('fr-FR', {
+                            dateStyle: 'short',
+                            timeStyle: 'short',
+                          }).format(new Date(u.created_at))}
+                        </td>
+                        <td className="users-actions">
+                          <div className="users-actions-buttons">
+                            <button
+                              type="button"
+                              className="users-edit-btn"
+                              onClick={() =>
+                                router.push(`/admin/users/${u.id}`)
+                              }
+                            >
+                              Modifier
+                            </button>
+                            <button
+                              type="button"
+                              className="users-delete-btn"
+                              disabled={deleteDisabled}
+                              onClick={() => handleDeleteUser(u)}
+                            >
+                              {deletingUserId === u.id
+                                ? 'Suppression…'
+                                : 'Supprimer'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="audit-pagination">
+              <span className="audit-pagination-info">
+                Page {currentPage} / {totalPages}
+              </span>
+              <div className="audit-pagination-buttons">
+                <button
+                  type="button"
+                  className="audit-page-btn"
+                  onClick={handlePrevPage}
+                  disabled={currentPage <= 1}
+                >
+                  Page précédente
+                </button>
+                <button
+                  type="button"
+                  className="audit-page-btn"
+                  onClick={handleNextPage}
+                  disabled={currentPage >= totalPages}
+                >
+                  Page suivante
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </section>
     </main>

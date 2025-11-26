@@ -3,6 +3,8 @@ from typing import Optional, List
 
 from pathlib import Path
 import json
+import io
+import csv
 
 from fastapi import (
     APIRouter,
@@ -15,6 +17,7 @@ from fastapi import (
     status,
     Query,
 )
+from fastapi.responses import StreamingResponse
 # OAuth2PasswordRequestForm.username = email
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select, and_, or_
@@ -184,7 +187,7 @@ def login(
         raise HTTPException(status_code=400, detail="Incorrect email or password")
 
     expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    # On encode aussi le rôle dans le token (utile si besoin plus tard)
+    # On encode aussi le rôle dans le token
     token = create_access_token(
         {"sub": user.email, "role": user.role},
         expires_delta=expires,
@@ -375,7 +378,7 @@ def admin_list_actes(
             or_(
                 Acte.titre.ilike(like),
                 Acte.resume.ilike(like),
-                Acte.fulltext_content.ilike(like),  # 🔍 recherche plein texte OCR
+                Acte.fulltext_content.ilike(like),
             )
         )
     if type:
@@ -553,10 +556,11 @@ def admin_delete_acte(
 
 # ---------- Journal d'audit (Admin only) ----------
 
+
 @router.get("/audit", response_model=List[AuditEntryOut])
 @router.get("/audit-logs", response_model=List[AuditEntryOut])
 def list_audit_logs_admin(
-    email: Optional[str] = Query(default=None),
+    user_email: Optional[str] = Query(default=None),
     action: Optional[str] = Query(default=None),
     acte_id: Optional[int] = Query(default=None),
     page: int = Query(default=1, ge=1),
@@ -568,7 +572,7 @@ def list_audit_logs_admin(
     Consultation du journal d'audit des actes :
     qui a créé / modifié / supprimé quel acte, et quand.
     Filtres possibles :
-      - email : filtre sur l'e-mail de l'agent/admin
+      - user_email : filtre sur l'e-mail de l'agent/admin
       - action : "create" / "update" / "delete"
       - acte_id : id de l'acte concerné
     Réservé aux administrateurs.
@@ -580,8 +584,8 @@ def list_audit_logs_admin(
     )
 
     conds = []
-    if email:
-        like = f"%{email}%"
+    if user_email:
+        like = f"%{user_email}%"
         conds.append(User.email.ilike(like))
     if action:
         conds.append(AuditLog.action == action)
@@ -600,19 +604,92 @@ def list_audit_logs_admin(
     rows = db.execute(stmt).all()
 
     entries: List[AuditEntryOut] = []
-    for log, acte_titre, user_email in rows:
+    for log, acte_titre, email in rows:
         entries.append(
             AuditEntryOut(
                 id=log.id,
                 action=log.action,
                 acte_id=log.acte_id,
                 acte_titre=acte_titre,
-                user_email=user_email,
+                user_email=email,
                 created_at=log.created_at,
             )
         )
 
     return entries
+
+
+@router.get("/audit-logs/export")
+def export_audit_logs_admin(
+    user_email: Optional[str] = Query(default=None),
+    action: Optional[str] = Query(default=None),
+    acte_id: Optional[int] = Query(default=None),
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    Export du journal d'audit au format CSV.
+    Les mêmes filtres que /admin/audit-logs sont disponibles, mais
+    l'export ne tient pas compte de la pagination (toutes les lignes
+    correspondant aux filtres, avec une limite de sécurité).
+    """
+    MAX_ROWS = 10_000
+
+    stmt = (
+        select(AuditLog, Acte.titre, User.email)
+        .outerjoin(Acte, AuditLog.acte_id == Acte.id)
+        .outerjoin(User, AuditLog.user_id == User.id)
+    )
+
+    conds = []
+    if user_email:
+        like = f"%{user_email}%"
+        conds.append(User.email.ilike(like))
+    if action:
+        conds.append(AuditLog.action == action)
+    if acte_id is not None:
+        conds.append(AuditLog.acte_id == acte_id)
+
+    if conds:
+        stmt = stmt.where(and_(*conds))
+
+    stmt = stmt.order_by(AuditLog.created_at.desc()).limit(MAX_ROWS)
+
+    rows = db.execute(stmt).all()
+
+    # Génération du CSV en mémoire
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, delimiter=';')
+
+    # En-têtes
+    writer.writerow(
+        ["id", "timestamp", "user_email", "action", "acte_id", "acte_titre", "detail"]
+    )
+
+    for log, acte_titre, email in rows:
+        ts = log.created_at.isoformat(timespec="seconds") if log.created_at else ""
+        writer.writerow(
+            [
+                log.id,
+                ts,
+                email or "",
+                log.action,
+                log.acte_id if log.acte_id is not None else "",
+                acte_titre or "",
+                log.detail or "",
+            ]
+        )
+
+    buffer.seek(0)
+    filename = "audit_logs.csv"
+
+    return StreamingResponse(
+        iter([buffer.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        },
+    )
 
 
 # ---------- Gestion des utilisateurs (Admin only) ----------

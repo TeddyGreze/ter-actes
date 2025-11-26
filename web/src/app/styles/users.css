@@ -26,7 +26,6 @@
   font-weight: 600;
 }
 
-/* Petit fil d'Ariane sur la page édition */
 .users-breadcrumbs {
   display: inline-flex;
   align-items: center;
@@ -47,7 +46,7 @@
 .users-title {
   font-size: 1.5rem;
   font-weight: 600;
-  margin: 0 0 20px; /* le margin-bottom est porté par .users-header-line */
+  margin: 0 0 20px;
   color: #0f172a;
 }
 
@@ -62,6 +61,7 @@
   font-weight: 500;
   white-space: nowrap;
   transition: background-color 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
 }
 
 .users-audit-link:hover {
@@ -79,9 +79,6 @@
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
 }
 
-/* 👉 Carte spécifique pour la page "Modifier un utilisateur"
-     On limite la largeur et on centre, ce qui fixe la largeur max
-     des champs E-mail / MDP / Rôle / boutons. */
 .users-card-edit {
   max-width: 720px;
   margin-inline: auto;
@@ -157,6 +154,23 @@
   width: 100%;
   overflow-x: auto;
   margin-top: 4px;
+}
+
+/* Filtres sur la liste des utilisateurs */
+.users-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 12px;
+  column-gap: 0;
+  margin-bottom: 12px;
+}
+
+@media (min-width: 768px) {
+  .users-filters {
+    grid-template-columns: 2fr 1fr;
+    align-items: end;
+    column-gap: 24px;
+  }
 }
 
 .users-table {
@@ -290,7 +304,6 @@
 
 .users-edit-form {
   width: 100%;
-  /* la largeur réelle est maintenant pilotée par .users-card-edit */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -374,7 +387,6 @@
   }
 }
 
-/* On aère un peu la zone "Dernières opérations" sur la page d'audit */
 .audit-page .users-card {
   margin-bottom: 24px;
 }
@@ -383,16 +395,49 @@
   margin-top: 8px;
 }
 
-/* Table d'audit : on peut laisser les longues infos se casser
-   la ligne pour éviter un trop gros scroll horizontal */
+/* Header "Dernières opérations" + bouton export */
+.audit-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.audit-list-header .users-section-title {
+  margin-bottom: 0;
+}
+
+/* Bouton d'export CSV */
+.audit-export-btn {
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #f9fafb;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #0f172a;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.audit-export-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #94a3b8;
+}
+
+.audit-export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .audit-table th,
 .audit-table td {
   white-space: nowrap;
 }
 
-.audit-table td:nth-child(5),
-.audit-table td:nth-child(6) {
-  /* Titre de l'acte + détails => autoriser le retour à la ligne */
+.audit-table td:nth-child(5) {
   white-space: normal;
 }
 
@@ -462,3 +507,133 @@
   cursor: not-allowed;
 }
 
+/* ===================== */
+/*   Responsive mobile   */
+/* ===================== */
+
+@media (max-width: 640px) {
+  .admin-users-page {
+    padding: 20px 10px 32px;
+  }
+
+  .users-card {
+    padding: 16px 14px;
+  }
+
+  .users-card-edit {
+    max-width: 100%;
+  }
+
+  .users-title {
+    font-size: 1.25rem;
+    margin-bottom: 12px;
+  }
+
+  .users-backline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .users-header-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .users-audit-link {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Filtres liste utilisateurs : plein écran en colonne */
+  .users-filters {
+    grid-template-columns: 1fr;
+  }
+
+  /* Tableau : taille texte + gestion des colonnes longues */
+  .users-table {
+    font-size: 0.8rem;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 6px 8px;
+  }
+
+  /* Masquer la colonne "Créé le" (4e colonne) sur mobile */
+  .users-table th:nth-child(4),
+  .users-table td:nth-child(4) {
+    display: none;
+  }
+
+  .users-table td:nth-child(2) {
+    white-space: normal;
+    word-break: break-all;
+  }
+
+  /* Boutons d'actions sur deux lignes */
+  .users-actions-buttons {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .users-edit-btn,
+  .users-delete-btn {
+    flex: 1 1 120px;
+    text-align: center;
+  }
+
+  /* Formulaire d'édition : actions en colonne sur mobile */
+  .users-edit-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .users-edit-actions .users-cancel-btn,
+  .users-edit-actions .btn-primary {
+    flex: 1 1 140px;
+    text-align: center;
+  }
+
+  /* Journal d'audit : header + bouton export empilés */
+  .audit-list-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .audit-export-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .audit-table {
+    font-size: 0.8rem;
+  }
+
+  .audit-table th,
+  .audit-table td {
+    padding: 6px 8px;
+  }
+
+  .audit-table td:nth-child(2),
+  .audit-table td:nth-child(5) {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Pagination centrée sur mobile */
+  .audit-pagination {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .audit-pagination-buttons {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .audit-page-btn {
+    flex: 0 0 auto;
+  }
+}

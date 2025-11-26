@@ -17,12 +17,12 @@ type Me = {
 
 type AuditLog = {
   id: number
-  created_at: string            // <-- vient de AuditEntryOut.created_at
+  created_at: string
   user_email: string | null
   action: string
   acte_id: number | null
-  acte_titre: string | null     // <-- vient de AuditEntryOut.acte_titre
-  detail?: string | null        // <-- optionnel, au cas où pas renvoyé
+  acte_titre: string | null
+  detail?: string | null
 }
 
 type AuditActionFilter = '' | 'create' | 'update' | 'delete'
@@ -46,6 +46,9 @@ export default function AuditLogsPage() {
   const [page, setPage] = useState(1)
   const pageSize = 20
   const [hasNext, setHasNext] = useState(false)
+  const [totalPagesHint, setTotalPagesHint] = useState(1)
+
+  const [exporting, setExporting] = useState(false)
 
   // Filtres saisis dans le formulaire
   const [filterEmail, setFilterEmail] = useState('')
@@ -79,6 +82,7 @@ export default function AuditLogsPage() {
           return
         }
 
+        setTotalPagesHint(1)
         await loadLogs(1, activeFilters)
       } catch (err) {
         console.error(err)
@@ -132,6 +136,13 @@ export default function AuditLogsPage() {
           : items.length === pageSize
 
       setHasNext(hasNextFromApi)
+
+      // Met à jour le "hint" du nombre total de pages connu
+      setTotalPagesHint(prev =>
+        hasNextFromApi
+          ? Math.max(prev, pageToLoad + 1)
+          : Math.max(prev, pageToLoad),
+      )
     } catch (err) {
       console.error(err)
       setError('Erreur réseau lors du chargement.')
@@ -149,6 +160,7 @@ export default function AuditLogsPage() {
     }
     setActiveFilters(newFilters)
     setPage(1)
+    setTotalPagesHint(1)
     await loadLogs(1, newFilters)
   }
 
@@ -189,6 +201,54 @@ export default function AuditLogsPage() {
         return 'audit-action-badge audit-action-delete'
       default:
         return 'audit-action-badge'
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      setExporting(true)
+
+      const params = new URLSearchParams()
+      if (activeFilters.email.trim()) {
+        params.set('user_email', activeFilters.email.trim())
+      }
+      if (activeFilters.action) {
+        params.set('action', activeFilters.action)
+      }
+      if (activeFilters.acteId.trim()) {
+        params.set('acte_id', activeFilters.acteId.trim())
+      }
+
+      const url = `${API}/admin/audit-logs/export${
+        params.toString() ? `?${params.toString()}` : ''
+      }`
+
+      const res = await fetch(url, {
+        credentials: 'include',
+        cache: 'no-store',
+      })
+
+      if (!res.ok) {
+        console.error(await res.text())
+        toast.error('Export impossible.')
+        return
+      }
+
+      const blob = await res.blob()
+      const dlUrl = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = dlUrl
+      const today = new Date().toISOString().slice(0, 10)
+      a.download = `journal-audit-${today}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(dlUrl)
+    } catch (err) {
+      console.error(err)
+      toast.error("Erreur réseau pendant l'export.")
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -261,9 +321,19 @@ export default function AuditLogsPage() {
 
       {/* Liste des logs */}
       <section className="users-card" aria-labelledby="audit-list-title">
-        <h2 id="audit-list-title" className="users-section-title">
-          Dernières opérations
-        </h2>
+        <div className="audit-list-header">
+          <h2 id="audit-list-title" className="users-section-title">
+            Dernières opérations
+          </h2>
+          <button
+            type="button"
+            className="audit-export-btn"
+            onClick={handleExport}
+            disabled={exporting || loading}
+          >
+            {exporting ? 'Export…' : 'Exporter en CSV'}
+          </button>
+        </div>
 
         {loading ? (
           <p className="users-info">Chargement…</p>
@@ -284,7 +354,6 @@ export default function AuditLogsPage() {
                     <th>Action</th>
                     <th>ID Acte</th>
                     <th>Titre de l&apos;acte</th>
-                    <th>Détails</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -306,7 +375,6 @@ export default function AuditLogsPage() {
                       </td>
                       <td>{log.acte_id ?? '—'}</td>
                       <td>{log.acte_titre ?? '—'}</td>
-                      <td>{log.detail ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -314,7 +382,9 @@ export default function AuditLogsPage() {
             </div>
 
             <div className="audit-pagination">
-              <span className="audit-pagination-info">Page {page}</span>
+              <span className="audit-pagination-info">
+                Page {page} / {totalPagesHint}
+              </span>
               <div className="audit-pagination-buttons">
                 <button
                   type="button"
