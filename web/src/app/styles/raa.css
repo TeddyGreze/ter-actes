@@ -211,6 +211,10 @@ body{
 
 /* cellules */
 .raa-cell{ min-width:0; }
+.raa-open-icon { 
+  font-size: 27px; 
+  color:black;
+  text-decoration: none; }
 .raa-name{
   display:flex;
   flex-direction:column;
@@ -523,4 +527,3 @@ body{
   from{opacity:0}
   to{opacity:1}
 }
-
