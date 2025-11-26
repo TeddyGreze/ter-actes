@@ -272,7 +272,7 @@ export default function HomePage() {
       <div className="raa-filters">
         <div className="raa-field">
           <label htmlFor="q">Recherche</label>
-          <input id="q" title="Champ Recherche" value={q} onChange={e => setQ(e.target.value)} placeholder="Mots-clés..." className="raa-input"/>
+          <input id="q" title="Champ Recherche" value={q} onChange={e => setQ(e.target.value)} placeholder="Titre" className="raa-input"/>
         </div>
         <div className="raa-field">
           <label htmlFor="type">Type</label>
@@ -290,7 +290,7 @@ export default function HomePage() {
           <label htmlFor="dateMax">Date max</label>
           <input id="dateMax" title="Champ Date maximum" type="date" value={dateMax} onChange={e => setDateMax(e.target.value)} className="raa-input"/>
         </div>
-        {/* (bouton Rechercher supprimé) */}
+        { }
       </div>
 
       {/* Recherche avancée (OCR) */}
@@ -407,6 +407,7 @@ export default function HomePage() {
                 >
                   <div className="raa-cell raa-col-check" role="cell">
                     <input title="Sélectionner l'acte" type="checkbox" className="raa-check" checked={isSelected(it.id)} onChange={() => toggleOne(it.id)} />
+                    <Link href={`/acte/${it.id}`} className='raa-open-icon'>🗎</Link>
                   </div>
 
                   <div className="raa-cell raa-name" role="cell">
