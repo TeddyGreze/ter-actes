@@ -22,7 +22,6 @@ type Acte = {
   service?: string | null;
   date_signature?: string | null;
   date_publication?: string | null;
-  statut?: string | null;
   pdf_path: string;
   created_at?: string;
 };
@@ -98,7 +97,6 @@ export default function EditActePage() {
     const url = URL.createObjectURL(file);
     setNewFileUrl(url);
     return () => URL.revokeObjectURL(url);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file]);
 
   // ESC pour fermer la modale
@@ -190,7 +188,6 @@ export default function EditActePage() {
     if (finalService) fd.set('service', finalService);
     if (a.date_signature ?? '') fd.set('date_signature', a.date_signature as string);
     if (a.date_publication ?? '') fd.set('date_publication', a.date_publication as string);
-    if (a.statut ?? '') fd.set('statut', a.statut as string);
     if (file) fd.set('pdf', file);
 
     const res = await fetch(`${API}/admin/actes/${a.id}`, {
@@ -204,12 +201,10 @@ export default function EditActePage() {
       return;
     }
 
-    // ✅ enregistré : on bump la version pour invalider le cache
     setPdfVersion(Date.now());
     setMsg('Modifications enregistrées.');
     setSaving(false);
 
-    // si tu veux rester sur la page, commente la ligne ci-dessous
     router.replace('/admin');
   };
 
@@ -227,7 +222,7 @@ export default function EditActePage() {
   return (
     <main className="upload-shell">
       <div className="upload-wrap">
-        <Link href="/admin" className="u-back">← Retour</Link>
+        <Link href="/admin" className="u-back">← Tableau de bord</Link>
 
         <div className="upload-card">
           {/* ⇩⇩⇩ ICI : titre avec le nom de l’acte */}
@@ -376,16 +371,6 @@ export default function EditActePage() {
                 className="u-input"
                 value={a.date_publication || ''}
                 onChange={(e) => setA({ ...a, date_publication: e.target.value || null })}
-              />
-            </div>
-
-            <div className="u-field">
-              <label htmlFor="statut">Statut</label>
-              <input
-                id="statut"
-                className="u-input"
-                value={a.statut || ''}
-                onChange={(e) => setA({ ...a, statut: e.target.value })}
               />
             </div>
 
