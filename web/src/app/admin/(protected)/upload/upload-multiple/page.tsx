@@ -16,13 +16,13 @@ const KNOWN_SERVICES = ['Culture', 'Mairie', 'Urbanisme', 'Voirie']
 type BulkRow = {
   titre: string
   type: string
-  typeChoice: string       
-  typeCustom: string      
+  typeChoice: string
+  typeCustom: string
   service: string
-  serviceChoice: string   
-  serviceCustom: string    
-  date_signature: string   
-  date_publication: string 
+  serviceChoice: string
+  serviceCustom: string
+  date_signature: string
+  date_publication: string
   pdf?: File | null
 }
 
@@ -270,15 +270,28 @@ export default function BulkUploadPage() {
 
       if (!res.ok) {
         toast.error('Erreur lors de la création des actes.')
+        setSubmitting(false)
         return
       }
 
-      const data = await res.json()
-      toast.success(`${data.count ?? rows.length} acte(s) créés.`)
-      router.push('/admin')
+      // Récupère éventuellement le nombre créé pour l’afficher dans le toast du dashboard
+      let count = rows.length
+      try {
+        const data = await res.json()
+        if (typeof data?.count === 'number') {
+          count = data.count
+        }
+      } catch {
+        // pas grave, on garde rows.length
+      }
+
+      // Redirection vers le dashboard qui affichera le toast global
+      router.push(`/admin?bulk=${count}`)
     } catch (e) {
       console.error(e)
       toast.error('Erreur réseau.')
+      setSubmitting(false)
+      return
     } finally {
       setSubmitting(false)
     }
@@ -300,7 +313,7 @@ export default function BulkUploadPage() {
       <section className="admin-panel">
         <h2 className="panel-title">Sélection des PDF</h2>
         <p className="panel-text">
-          Sélectionnez tous les PDF à déposer. 
+          Sélectionnez tous les PDF à déposer.
           Les métadonnées principales seront remplies automatiquement à partir du contenu.
         </p>
         <label className="f-field">
@@ -347,7 +360,14 @@ export default function BulkUploadPage() {
                 <label>Type d&apos;acte *</label>
                 <select
                   className="f-input"
-                  value={row.typeChoice || (KNOWN_TYPES.includes(row.type) ? row.type : row.type ? '__other__' : '')}
+                  value={
+                    row.typeChoice ||
+                    (KNOWN_TYPES.includes(row.type)
+                      ? row.type
+                      : row.type
+                      ? '__other__'
+                      : '')
+                  }
                   onChange={e => handleTypeSelectChange(idx, e.target.value)}
                 >
                   <option value="">— Sélectionner —</option>
@@ -380,7 +400,11 @@ export default function BulkUploadPage() {
                   className="f-input"
                   value={
                     row.serviceChoice ||
-                    (KNOWN_SERVICES.includes(row.service) ? row.service : row.service ? '__other__' : '')
+                    (KNOWN_SERVICES.includes(row.service)
+                      ? row.service
+                      : row.service
+                      ? '__other__'
+                      : '')
                   }
                   onChange={e => handleServiceSelectChange(idx, e.target.value)}
                 >

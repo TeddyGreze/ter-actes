@@ -36,6 +36,8 @@ export default function EditActePage() {
   const [saving, setSaving] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
 
+  const [initialTitle, setInitialTitle] = useState<string>('');
+
   // référentiels + “Autre…”
   const [types, setTypes] = useState<string[]>([]);
   const [services, setServices] = useState<string[]>([]);
@@ -74,6 +76,7 @@ export default function EditActePage() {
 
         const act = await actRes.json();
         setA(act);
+        setInitialTitle(act.titre ?? '');   
         setPdfVersion(Date.now());
 
         const tData = await tRes.json().catch(() => []);
@@ -97,7 +100,7 @@ export default function EditActePage() {
     const url = URL.createObjectURL(file);
     setNewFileUrl(url);
     return () => URL.revokeObjectURL(url);
-  }, [file]);
+  }, [file, newFileUrl]);
 
   // ESC pour fermer la modale
   useEffect(() => {
@@ -131,37 +134,37 @@ export default function EditActePage() {
         // data = { fulltext_excerpt, date_auto, service_auto, type_auto }
 
         setA(prev => {
-            if (!prev) return prev;
-            let next = { ...prev };
+          if (!prev) return prev;
+          let next = { ...prev };
 
-            // date_signature
-            if (!next.date_signature && data.date_auto) {
-              next.date_signature = data.date_auto;
+          // date_signature
+          if (!next.date_signature && data.date_auto) {
+            next.date_signature = data.date_auto;
+          }
+
+          // type
+          if (data.type_auto) {
+            if (types.includes(data.type_auto)) {
+              setUseCustomType(false);
+              next.type = next.type || data.type_auto;
+            } else {
+              setUseCustomType(true);
+              setCustomType(data.type_auto);
             }
+          }
 
-            // type
-            if (data.type_auto) {
-              if (types.includes(data.type_auto)) {
-                setUseCustomType(false);
-                next.type = next.type || data.type_auto;
-              } else {
-                setUseCustomType(true);
-                setCustomType(data.type_auto);
-              }
+          // service
+          if (data.service_auto) {
+            if (services.includes(data.service_auto)) {
+              setUseCustomService(false);
+              next.service = next.service || data.service_auto;
+            } else {
+              setUseCustomService(true);
+              setCustomService(data.service_auto);
             }
+          }
 
-            // service
-            if (data.service_auto) {
-              if (services.includes(data.service_auto)) {
-                setUseCustomService(false);
-                next.service = next.service || data.service_auto;
-              } else {
-                setUseCustomService(true);
-                setCustomService(data.service_auto);
-              }
-            }
-
-            return next;
+          return next;
         });
       } else {
         console.warn('analyse-pdf error', res.status);
@@ -201,11 +204,8 @@ export default function EditActePage() {
       return;
     }
 
-    setPdfVersion(Date.now());
-    setMsg('Modifications enregistrées.');
     setSaving(false);
-
-    router.replace('/admin');
+    router.replace('/admin?updated=1');
   };
 
   if (!a) {
@@ -216,8 +216,7 @@ export default function EditActePage() {
     );
   }
 
-  // Titre d’affichage (fallback si titre vide)
-  const displayTitle = (a.titre?.trim() || `#${a.id}`);
+  const displayTitle = (initialTitle.trim() || `#${a.id}`);
 
   return (
     <main className="upload-shell">
@@ -225,7 +224,6 @@ export default function EditActePage() {
         <Link href="/admin" className="u-back">← Tableau de bord</Link>
 
         <div className="upload-card">
-          {/* ⇩⇩⇩ ICI : titre avec le nom de l’acte */}
           <h1 className="u-title" style={{ wordBreak: 'break-word' }}>
             Modifier l’acte « {displayTitle} »
           </h1>
@@ -237,7 +235,6 @@ export default function EditActePage() {
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                // Aperçu du PDF actuel stocké côté API
                 setPreviewSrc(`${API}/actes/${a.id}/pdf?ts=${pdfVersion}`);
                 setShowPreview(true);
               }}
@@ -393,7 +390,6 @@ export default function EditActePage() {
                     onClick={(e) => {
                       e.preventDefault();
                       if (newFileUrl) {
-                        // aperçu du NOUVEAU fichier choisi
                         setPreviewSrc(newFileUrl);
                         setShowPreview(true);
                       }
@@ -456,9 +452,6 @@ export default function EditActePage() {
             </div>
 
             <div style={{ width: '100%', height: 'calc(100% - 44px)' }}>
-              {/* PDFViewer reçoit :
-                 - file (si on vient de sélectionner un nouveau PDF)
-                 - url (si on affiche le PDF actuel déjà publié) */}
               <PDFViewer file={file} url={previewSrc || undefined} />
             </div>
           </div>

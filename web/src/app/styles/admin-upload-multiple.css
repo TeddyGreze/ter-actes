@@ -1,54 +1,36 @@
-:root{  
-  --bg:#f7fafc;
-  --fg:#0f172a;
-  --muted:#475569;
-  --border:#e2e8f0;
-  --brand:#078d9a;
-  --brand-600:#067883;
-  --brand-700:#056a74;
-}
+/* ========= Page dépôt multiple d'actes (scopée dans .upload-multi) ========= */
 
-html,body{height:100%}
-body{
-  background:var(--bg);
-  color:var(--fg);
-  margin:0;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-}
-
-/* ===== Layout global de la page ===== */
-
-.admin-wrap{
+/* Layout global de la page */
+.upload-multi{
   min-height:100dvh;
-  padding:24px;
 }
 
-/* topbar + titre */
-
+/* Topbar + titre */
 .upload-multi .admin-topbar{
   max-width:760px;
   margin:0 auto 16px auto;
   display:flex;
-  flex-direction: column;   
-  align-items:flex-start;     
-  gap:4px; 
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
 }
 
-.admin-breadcrumb{
+.upload-multi .admin-breadcrumb{
   flex:0 0 auto;
 }
 
-.link-back{
+.upload-multi .link-back{
   display:inline-block;
-  margin-bottom: 10px;
+  margin-bottom:10px;
   color:var(--brand-600);
   text-decoration:none;
 }
-.link-back:hover{
+
+.upload-multi .link-back:hover{
   text-decoration:underline;
 }
 
-.admin-title{
+.upload-multi .admin-title{
   margin:0;
   font-size:32px;
   font-weight:700;
@@ -56,7 +38,7 @@ body{
 
 /* ===== Cartes / sections ===== */
 
-.admin-panel{
+.upload-multi .admin-panel{
   max-width:760px;
   margin:0 auto 16px auto;
   background:#fff;
@@ -66,13 +48,13 @@ body{
   box-shadow:0 1px 2px rgba(15,23,42,.04);
 }
 
-.panel-title{
+.upload-multi .panel-title{
   margin:0 0 8px;
   font-size:20px;
   font-weight:700;
 }
 
-.panel-text{
+.upload-multi .panel-text{
   margin:0 0 16px;
   font-size:15px;
   color:#64748b;
@@ -80,7 +62,7 @@ body{
 
 /* ===== Formulaire & champs ===== */
 
-.bulk-group{
+.upload-multi .bulk-group{
   border:3px dashed #e2e8f0;
   border-radius:12px;
   padding:16px;
@@ -88,7 +70,7 @@ body{
   background:#f9fafb;
 }
 
-.bulk-group legend{
+.upload-multi .bulk-group legend{
   padding:0 6px;
   font-size:17px;
   font-weight:600;
@@ -97,28 +79,29 @@ body{
 
 /* champ générique */
 
-.f-field{
+.upload-multi .f-field{
   margin-bottom:12px;
 }
 
-.f-field span{
-  font-size: 17px;
+.upload-multi .f-field span{
+  font-size:17px;
 }
-.f-field input{
-  font-size: 16px;
+
+.upload-multi .f-field input{
+  font-size:16px;
   margin-bottom:6px;
 }
 
-.f-field label{
+.upload-multi .f-field label{
   display:block;
-  font-size: 14px;
+  font-size:14px;
   margin-bottom:6px;
   color:#334155;
 }
 
 /* inputs uniformes */
 
-.f-input{
+.upload-multi .f-input{
   width:100%;
   display:block;
   box-sizing:border-box;
@@ -131,15 +114,15 @@ body{
   transition:border .15s ease, box-shadow .15s ease, background .15s ease;
 }
 
-.f-input:focus{
+.upload-multi .f-input:focus{
   border-color:var(--brand-600);
   box-shadow:0 0 0 3px rgba(6,120,131,.18);
 }
 
 /* explicit pour select / date */
 
-select.f-input,
-input.f-input[type="date"]{
+.upload-multi select.f-input,
+.upload-multi input.f-input[type="date"]{
   width:100%;
   appearance:none;
   -webkit-appearance:none;
@@ -150,8 +133,8 @@ input.f-input[type="date"]{
 
 .upload-multi .btn-primary{
   height:44px;
-  width: 100%;
-  margin-top: 10px;
+  width:100%;
+  margin-top:10px;
   padding:0 18px;
   border:0;
   border-radius:10px;
@@ -164,16 +147,18 @@ input.f-input[type="date"]{
   align-items:center;
   justify-content:center;
 }
-.btn-primary:hover{
+
+.upload-multi .btn-primary:hover{
   background:var(--brand-700);
 }
-.btn-primary:disabled{
+
+.upload-multi .btn-primary:disabled{
   opacity:.7;
   cursor:not-allowed;
 }
 
 /* petit texte d’info sous l’input fichiers */
-.f-help{
+.upload-multi .f-help{
   font-size:12px;
   color:#64748b;
   margin-top:4px;
@@ -182,18 +167,21 @@ input.f-input[type="date"]{
 /* ===== Responsive ===== */
 
 @media (max-width:640px){
-  .admin-wrap{
+  .upload-multi{
     padding:16px;
   }
+
   .upload-multi .admin-topbar{
     flex-direction:column;
     align-items:flex-start;
     gap:4px;
   }
-  .admin-title{
+
+  .upload-multi .admin-title{
     font-size:26px;
   }
-  .admin-panel{
+
+  .upload-multi .admin-panel{
     padding:16px;
   }
 }

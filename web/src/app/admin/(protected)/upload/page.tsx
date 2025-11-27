@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
@@ -18,6 +18,7 @@ const PDFViewer = dynamic<PDFViewerProps>(
 
 export default function AdminUpload() {
   const search = useSearchParams();
+  const router = useRouter();
   const next = search.get('next') || null;
 
   // Référentiels => utilisés aussi pour valider ce que l'OCR propose
@@ -25,14 +26,13 @@ export default function AdminUpload() {
   const [services, setServices] = useState<string[]>([]);
 
   const getTodayISO = () => {
-    const d = new Date()
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
-  }
-  const today = getTodayISO()
-
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+  const today = getTodayISO();
 
   const [form, setForm] = useState<Record<string, string>>({
     titre: '',
@@ -53,9 +53,9 @@ export default function AdminUpload() {
 
   // UI state
   const [msg, setMsg] = useState('');
-  const [checking, setChecking] = useState(true);    // vérification session admin
+  const [checking, setChecking] = useState(true);     // vérification session admin
   const [submitting, setSubmitting] = useState(false); // bouton Publier
-  const [analyzing, setAnalyzing] = useState(false); // analyse OCR en cours
+  const [analyzing, setAnalyzing] = useState(false);  // analyse OCR en cours
 
   // ref pour pouvoir reset l'input file
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -191,62 +191,54 @@ export default function AdminUpload() {
     setMsg('');
 
     if (!file) {
-        setMsg('Sélectionnez un PDF');
-        return;
+      setMsg('Sélectionnez un PDF');
+      return;
     }
 
     setSubmitting(true);
 
-    const fd = new FormData();
+    try {
+      const fd = new FormData();
 
-    // champs texte simples
-    fd.set('titre', form.titre);
+      // champs texte simples
+      fd.set('titre', form.titre);
 
-    // valeurs finales type / service
-    const finalType = useCustomType ? customType : form.type;
-    const finalService = useCustomService ? customService : form.service;
+      // valeurs finales type / service
+      const finalType = useCustomType ? customType : form.type;
+      const finalService = useCustomService ? customService : form.service;
 
-    if (finalType) fd.set('type', finalType);
-    if (finalService) fd.set('service', finalService);
-    if (form.date_signature) fd.set('date_signature', form.date_signature);
-    if (form.date_publication) fd.set('date_publication', form.date_publication);
+      if (finalType) fd.set('type', finalType);
+      if (finalService) fd.set('service', finalService);
+      if (form.date_signature) fd.set('date_signature', form.date_signature);
+      if (form.date_publication) fd.set('date_publication', form.date_publication);
 
-    // fichier PDF
-    fd.set('pdf', file);
+      // fichier PDF
+      fd.set('pdf', file);
 
-    const res = await fetch(`${API}/admin/actes`, {
-      method: 'POST',
-      body: fd,
-      credentials: 'include',
-      cache: 'no-store',
-    });
+      const res = await fetch(`${API}/admin/actes`, {
+        method: 'POST',
+        body: fd,
+        credentials: 'include',
+        cache: 'no-store',
+      });
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      setMsg('Erreur: ' + (text || res.status));
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        setMsg('Erreur: ' + (text || res.status));
+        setSubmitting(false);
+        return;
+      }
+
+      await res.json();
+
+      // succès => retour au tableau de bord avec paramètre pour le toast
       setSubmitting(false);
-      return;
+      router.push('/admin?created=1');
+    } catch (err) {
+      console.error('submit failed:', err);
+      setMsg('Erreur réseau.');
+      setSubmitting(false);
     }
-
-    const data = await res.json();
-    setMsg('Acte créé');
-    setSubmitting(false);
-
-    // reset complet du formulaire après succès
-    setForm({
-      titre: '',
-      type: '',
-      service: '',
-      date_signature: '',
-      date_publication: today,
-    });
-    setUseCustomType(false);
-    setCustomType('');
-    setUseCustomService(false);
-    setCustomService('');
-    setFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    setShowPreview(false);
   };
 
   if (checking) {

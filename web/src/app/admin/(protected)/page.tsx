@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import '../../styles/admin.css'
 import { useToast } from '../../../components/Toast'
 import { Skeleton } from '../../../components/Skeleton'
@@ -37,6 +37,7 @@ const fmtDate = (iso?: string) =>
 
 export default function AdminDashboard() {
   const router = useRouter()
+  const search = useSearchParams()
   const toast = useToast()
 
   const [items, setItems] = useState<Acte[]>([])
@@ -65,11 +66,16 @@ export default function AdminDashboard() {
   const [page, setPage] = useState(1)
 
   // Filtre avancé (OCR plein texte)
-  const [advFilter, setAdvFilter] = useState<{ term: string; ids: number[] } | null>(null)
+  const [advFilter, setAdvFilter] = useState<{ term: string; ids: number[] } | null>(
+    null,
+  )
 
   // Boot/abort
   const bootedRef = useRef(false) // bloque l’auto-reload des filtres au boot
   const abortRef = useRef<AbortController | null>(null)
+
+  // ✅ évite les toasts en double (StrictMode)
+  const flashHandledRef = useRef(false)
 
   useEffect(() => {
     const boot = async () => {
@@ -93,6 +99,49 @@ export default function AdminDashboard() {
     boot()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Affiche les toasts selon les paramètres d'URL (?created, ?bulk, ?updated)
+  useEffect(() => {
+    if (!search) return
+
+    // si on a déjà géré le flash pour cette montée, on ne refait rien
+    if (flashHandledRef.current) return
+
+    const created = search.get('created')
+    const bulk = search.get('bulk')
+    const updated = search.get('updated')
+
+    if (!created && !bulk && !updated) return
+
+    // on marque comme traité AVANT d’afficher les toasts
+    flashHandledRef.current = true
+
+    if (created) {
+      toast.success('Acte créé')
+    }
+
+    if (bulk) {
+      const n = Number(bulk)
+      if (Number.isFinite(n) && n > 1) {
+        toast.success(`${n} actes créés`)
+      } else {
+        toast.success('Acte créé')
+      }
+    }
+
+    if (updated) {
+      toast.success('Acte modifié')
+    }
+
+    // Nettoie l’URL pour ne pas rejouer les toasts au rafraîchissement
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('created')
+      url.searchParams.delete('bulk')
+      url.searchParams.delete('updated')
+      window.history.replaceState(null, '', url.toString())
+    }
+  }, [search, toast])
 
   async function load(p = page) {
     // Skeleton uniquement tant qu’on n’a jamais rendu de data
@@ -201,7 +250,9 @@ export default function AdminDashboard() {
 
     let filtered = items.filter(a => {
       if (nq) {
-        const hay = norm(`${a.titre} ${a.resume ?? ''} ${a.type ?? ''} ${a.service ?? ''}`)
+        const hay = norm(
+          `${a.titre} ${a.resume ?? ''} ${a.type ?? ''} ${a.service ?? ''}`,
+        )
         if (!hay.includes(nq)) return false
       }
       if (nt && !norm(a.type).includes(nt)) return false
@@ -226,7 +277,9 @@ export default function AdminDashboard() {
     const arr = [...filtered]
     arr.sort((a, b) => {
       const get = (it: Acte, k: SortKey) =>
-        k === 'date_publication' ? (it.date_publication || it.created_at || '') : it[k] || ''
+        k === 'date_publication'
+          ? it.date_publication || it.created_at || ''
+          : it[k] || ''
       const A = get(a, sortKey).toString().toLowerCase()
       const B = get(b, sortKey).toString().toLowerCase()
       if (A < B) return sortDir === 'asc' ? -1 : 1
@@ -355,7 +408,9 @@ export default function AdminDashboard() {
             role="columnheader"
             tabIndex={0}
             onClick={() => toggleSort('titre')}
-            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleSort('titre')}
+            onKeyDown={e =>
+              (e.key === 'Enter' || e.key === ' ') && toggleSort('titre')
+            }
           >
             <span>Nom</span> <span className="sort">{sortArrow('titre')}</span>
           </div>
@@ -365,7 +420,8 @@ export default function AdminDashboard() {
             tabIndex={0}
             onClick={() => toggleSort('date_publication')}
             onKeyDown={e =>
-              (e.key === 'Enter' || e.key === ' ') && toggleSort('date_publication')
+              (e.key === 'Enter' || e.key === ' ') &&
+              toggleSort('date_publication')
             }
           >
             <span>Publication</span>{' '}
@@ -376,7 +432,9 @@ export default function AdminDashboard() {
             role="columnheader"
             tabIndex={0}
             onClick={() => toggleSort('type')}
-            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleSort('type')}
+            onKeyDown={e =>
+              (e.key === 'Enter' || e.key === ' ') && toggleSort('type')
+            }
           >
             <span>Type</span> <span className="sort">{sortArrow('type')}</span>
           </div>
@@ -385,7 +443,9 @@ export default function AdminDashboard() {
             role="columnheader"
             tabIndex={0}
             onClick={() => toggleSort('service')}
-            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleSort('service')}
+            onKeyDown={e =>
+              (e.key === 'Enter' || e.key === ' ') && toggleSort('service')
+            }
           >
             <span>Service</span> <span className="sort">{sortArrow('service')}</span>
           </div>
@@ -485,7 +545,11 @@ export default function AdminDashboard() {
       {/* Pagination pilule : affichée seulement quand des lignes sont rendues */}
       {showPager && (
         <nav className="pager-wrap" aria-label="Pagination">
-          <div className="pager-pill" role="group" aria-hidden={refreshing ? 'true' : 'false'}>
+          <div
+            className="pager-pill"
+            role="group"
+            aria-hidden={refreshing ? 'true' : 'false'}
+          >
             <button
               type="button"
               onClick={() => page > 1 && load(1)}
@@ -518,7 +582,9 @@ export default function AdminDashboard() {
             <button
               type="button"
               onClick={() =>
-                typeof totalPages === 'number' && page !== totalPages && load(totalPages!)
+                typeof totalPages === 'number' &&
+                page !== totalPages &&
+                load(totalPages!)
               }
               disabled={typeof totalPages !== 'number' || page === totalPages}
               title="Dernière"
