@@ -292,11 +292,13 @@ export default function EditActePage() {
                     type="button"
                     className="u-btn"
                     onClick={() => {
+                      // retour à la liste : on vide la valeur custom et le champ
                       setUseCustomType(false);
-                      setA({ ...a, type: customType });
+                      setCustomType('');
+                      setA({ ...a, type: '' });
                     }}
                   >
-                    Utiliser cette valeur
+                    Utiliser la liste
                   </button>
                 </div>
               )}
@@ -338,11 +340,13 @@ export default function EditActePage() {
                     type="button"
                     className="u-btn"
                     onClick={() => {
+                      // retour à la liste : on vide la valeur custom et le champ
                       setUseCustomService(false);
-                      setA({ ...a, service: customService });
+                      setCustomService('');
+                      setA({ ...a, service: '' });
                     }}
                   >
-                    Utiliser cette valeur
+                    Utiliser la liste
                   </button>
                 </div>
               )}
