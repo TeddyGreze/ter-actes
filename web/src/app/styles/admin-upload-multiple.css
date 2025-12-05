@@ -78,7 +78,6 @@
 }
 
 /* champ générique */
-
 .upload-multi .f-field{
   margin-bottom:12px;
 }
@@ -100,7 +99,6 @@
 }
 
 /* inputs uniformes */
-
 .upload-multi .f-input{
   width:100%;
   display:block;
@@ -119,8 +117,6 @@
   box-shadow:0 0 0 3px rgba(6,120,131,.18);
 }
 
-/* explicit pour select / date */
-
 .upload-multi select.f-input,
 .upload-multi input.f-input[type="date"]{
   width:100%;
@@ -130,7 +126,6 @@
 }
 
 /* ===== Boutons ===== */
-
 .upload-multi .btn-primary{
   height:44px;
   width:100%;

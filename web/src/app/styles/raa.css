@@ -169,7 +169,7 @@ body{
 }
 
 
-/* ================= Tableau RAA ============================ */
+/* ==================== Tableau RAA ==================== */
 .raa-table{
   margin-top:24px;
   background:#fff;
@@ -399,7 +399,7 @@ body{
   line-height:1;
 }
 
-/* bouton Réinitialiser */
+/* bouton Réinitialiser à côté */
 .adv-reset-inline{
   height:40px;
   padding:0 .75rem;
@@ -419,6 +419,8 @@ body{
 }
 
 /* -------- animation du bloc de recherche avancée -------- */
+
+/* conteneur qui s'ouvre/se ferme en animation */
 .adv-inline-formwrap{
   flex:1 1 auto;
   overflow:hidden;
@@ -434,14 +436,15 @@ body{
     transform .22s ease;
 }
 
+/* quand open === true => on ajoute .is-open */
 .adv-inline-formwrap.is-open{
-  max-width:1000px;     
-  max-height:200px;    
+  max-width:1000px;    
+  max-height:200px;   
   opacity:1;
   transform:translateY(0);
 }
 
-/* formulaire interne */
+/* le formulaire interne */
 .adv-inline-form{
   display:flex;
   flex-wrap:nowrap;
@@ -457,10 +460,12 @@ body{
   min-width:260px;
 }
 
+/* bouton envoyer du formulaire avancé */
 .adv-inline-submit{
   white-space:nowrap;
 }
 
+/* message d'erreur éventuel */
 .adv-error{
   flex-basis:100%;
   font-size:.9rem;

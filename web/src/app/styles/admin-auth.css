@@ -8,7 +8,7 @@
   --brand-700:#056a74;
 }
 
-html, body { height: 100%; overflow: hidden; }
+html,body{height:100%}
 body{
   margin:0;
   background:var(--bg);
@@ -18,12 +18,10 @@ body{
 
 /* ===== Shell centré ===== */
 .auth-shell{
-  height: 100dvh;     
-  min-height: unset;
-  box-sizing: border-box; 
-  padding: 24px;
-  display: grid;
-  place-items: center;
+  min-height:100dvh;
+  display:grid;
+  place-items:center;
+  padding:24px;
 }
 .auth-wrap{ width:100%; max-width:720px; }
 

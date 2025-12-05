@@ -59,6 +59,7 @@ body{ background:var(--bg); color:var(--fg); }
   color:#334155;
 }
 
+/* Container de la visionneuse */
 .acte-viewer{
   margin-top: 8px;
   border: 1px solid var(--border);
@@ -94,7 +95,7 @@ body{ background:var(--bg); color:var(--fg); }
   display:flex;
   gap:8px;              
   align-items:center;
-  margin-left:auto;      
+  margin-left:auto;     
 }
 
 .pdfbtn{

@@ -43,10 +43,11 @@ body{ background:var(--bg); color:var(--fg); margin:0;
 /* formulaire */
 .u-form{ display:grid; gap:14px; }
 
+/* pleine largeur pour CHAQUE champ */
 .u-field{
   width: 100%;
   max-width: 100%;
-  padding-right: 0;          
+  padding-right: 0;   
   margin-inline: auto;
 }
 
@@ -54,11 +55,10 @@ body{ background:var(--bg); color:var(--fg); margin:0;
   display:block; font-size:14px; color:#334155; margin-bottom:6px;
 }
 
-/* champs uniformisés */
 .u-input{
   width:100%;
   display:block;            
-  box-sizing:border-box;    
+  box-sizing:border-box;  
   border:1px solid #cbd5e1;
   background:#fff;
   border-radius:10px;
@@ -72,6 +72,7 @@ body{ background:var(--bg); color:var(--fg); margin:0;
   box-shadow:0 0 0 3px rgba(6,120,131,.2);
 }
 
+/* précisions pour que tous restent à 100% */
 select.u-input,
 input.u-input[type="date"],
 textarea.u-input{

@@ -69,7 +69,7 @@
   border-color: #94a3b8;
 }
 
-/* Cartes */
+/* Cartes (création + liste + édition) */
 .users-card {
   background: #ffffff;
   border-radius: 14px;
@@ -202,7 +202,7 @@
   background: #e5f0ff;
 }
 
-/* Colonne actions collée au contenu */
+/* Colonne ACTIONS collée au contenu */
 .users-table th:last-child,
 .users-table td:last-child {
   width: 1%;
@@ -211,7 +211,6 @@
 }
 
 /* Couleurs de rôle */
-
 .users-role {
   text-transform: capitalize;
   font-weight: 500;
@@ -244,6 +243,7 @@
 }
 
 /* Colonne actions */
+
 .users-actions {
   text-align: right;
 }
@@ -372,7 +372,7 @@
 
 @media (min-width: 768px) {
   .audit-filters {
-    grid-template-columns: 2fr 1fr 1fr auto;
+    grid-template-columns: 2fr 1fr 1fr auto; 
     align-items: end;
     column-gap: 24px;
   }
@@ -553,6 +553,7 @@
     white-space: normal;
     word-break: break-all;
   }
+  /* Boutons d'actions sur deux lignes */
   .users-actions-buttons {
     flex-wrap: wrap;
     justify-content: flex-start;
