@@ -1,0 +1,108 @@
+:root{
+  --bg:#f7fafc;
+  --fg:#0f172a;
+  --muted:#475569;
+  --border:#e2e8f0;
+  --brand:#078d9a;
+  --brand-600:#067883;
+  --brand-700:#056a74;
+}
+
+html, body { height: 100%; overflow: hidden; }
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+}
+
+/* ===== Shell centré ===== */
+.auth-shell{
+  height: 100dvh;     
+  min-height: unset;
+  box-sizing: border-box; 
+  padding: 24px;
+  display: grid;
+  place-items: center;
+}
+.auth-wrap{ width:100%; max-width:720px; }
+
+/* ===== Carte ===== */
+.auth-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05);
+}
+.a-title{
+  margin:0 0 12px 0;
+  font-size:32px;
+  font-weight:700;
+  letter-spacing:.2px;
+}
+
+/* ===== Form ===== */
+.a-form{ display:grid; gap:14px; }
+
+.a-field{ max-width: 420px; width:100%; margin-inline:auto; }
+.a-field label{
+  display:block;
+  font-size:14px;
+  color:#334155;
+  margin-bottom:6px;
+}
+
+.a-input{
+  width:100%;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  border-radius:10px;
+  padding:10px 12px;
+  outline:none;
+  transition:border .15s, box-shadow .15s;
+  font-size:16px;
+  box-sizing:border-box;
+}
+.a-input:focus{
+  border-color:var(--brand-600);
+  box-shadow:0 0 0 3px rgba(6,120,131,.2);
+}
+
+.a-btn{
+  height:44px;
+  padding:0 16px;
+  border:0;
+  border-radius:10px;
+  background:var(--brand-600);
+  color:#fff;
+  font-weight:700;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  max-width:420px;
+  width:100%;
+  margin-inline:auto;
+}
+.a-btn:hover{ background:var(--brand-700); }
+.a-btn:disabled{ opacity:.75; cursor:not-allowed; }
+
+.a-error{
+  max-width:420px;
+  width:100%;
+  margin-inline:auto;
+  color:#b91c1c;
+  background:#fee2e2;
+  border:1px solid #fecaca;
+  padding:8px 12px;
+  border-radius:10px;
+  font-weight:600;
+}
+
+
+/* =========== Responsive ============ */
+@media (max-width:560px){
+  .auth-card{ padding:18px; }
+  .a-title{ font-size:28px; }
+}

@@ -1,0 +1,105 @@
+:root{  
+  --bg:#f7fafc;
+  --fg:#0f172a;
+  --muted:#475569;
+  --border:#e2e8f0;
+  --brand:#078d9a;
+  --brand-600:#067883;
+  --brand-700:#056a74;
+}
+
+html,body{height:100%}
+body{ background:var(--bg); color:var(--fg); margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+}
+
+.upload-shell{
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.upload-wrap{ width: 100%; max-width: 720px; }
+
+.u-back{
+  display:inline-block; margin-bottom:10px; color:var(--brand-600); text-decoration:none;
+}
+.u-back:hover{text-decoration:underline}
+
+.upload-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05);
+}
+.u-title{
+  margin:0 0 12px 0;
+  font-size:32px; font-weight:700; letter-spacing:.2px;
+}
+.u-note{ font-size:14px; color:#64748b; }
+.u-note a{ color:var(--brand-600); text-decoration:underline; }
+
+/* formulaire */
+.u-form{ display:grid; gap:14px; }
+
+.u-field{
+  width: 100%;
+  max-width: 100%;
+  padding-right: 0;          
+  margin-inline: auto;
+}
+
+.u-field label{
+  display:block; font-size:14px; color:#334155; margin-bottom:6px;
+}
+
+/* champs uniformisés */
+.u-input{
+  width:100%;
+  display:block;            
+  box-sizing:border-box;    
+  border:1px solid #cbd5e1;
+  background:#fff;
+  border-radius:10px;
+  padding:10px 12px;
+  outline:none;
+  transition:border .15s, box-shadow .15s;
+  font-size:16px;
+}
+.u-input:focus{
+  border-color:var(--brand-600);
+  box-shadow:0 0 0 3px rgba(6,120,131,.2);
+}
+
+select.u-input,
+input.u-input[type="date"],
+textarea.u-input{
+  width:100%;
+  display:block;
+  box-sizing:border-box;
+}
+
+textarea.u-input{ min-height:110px; }
+
+.u-file{ padding:8px 10px; }
+.u-filemeta{ font-size:13px; color:#64748b; margin-top:4px; }
+
+/* bouton */
+.u-btn{
+  height:44px; padding:0 16px;
+  border:0; border-radius:10px; background:var(--brand-600);
+  color:#fff; font-weight:700; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.u-btn:hover{ background:var(--brand-700); }
+.u-btn:disabled{ opacity:.7; cursor:not-allowed; }
+
+.u-msg{ margin:0; font-weight:700; color:#0f172a; }
+
+/* ============= Responsive =============== */
+@media (max-width:560px){
+  .upload-wrap{ max-width: 560px; }
+  .u-title{ font-size:28px; }
+  .upload-card{ padding:18px; }
+}
