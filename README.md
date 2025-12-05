@@ -1,8 +1,10 @@
-# TER — Portail des Actes Administratifs
+### Aifeze SIMBA (42002605) / Teddy GREZE (42002568)
 
-Application web de gestion et consultation publique des actes administratifs (arrêtés, délibérations, décisions) pour les collectivités territoriales.
+# TER - Portail public de consultation des actes administratifs communaux
 
-## 📋 Fonctionnalités
+Application web de gestion et consultation publique des actes administratifs pour la mairie de Saint-André.
+
+## Fonctionnalités
 
 ### Portail public
 - **Consultation des actes** : Liste paginée avec filtres (type, service, dates)
@@ -24,7 +26,7 @@ Application web de gestion et consultation publique des actes administratifs (ar
 - Détection automatique de la **date de signature**
 - Indexation plein texte pour la recherche
 
-## 🛠️ Stack technique
+## Stack technique
 
 | Composant | Technologie |
 |-----------|-------------|
@@ -35,7 +37,7 @@ Application web de gestion et consultation publique des actes administratifs (ar
 | **OCR** | Tesseract + pytesseract |
 | **Conteneurisation** | Docker & Docker Compose |
 
-## 🚀 Lancement
+## Lancement
 
 ### Prérequis
 - Docker et Docker Compose installés
@@ -43,10 +45,8 @@ Application web de gestion et consultation publique des actes administratifs (ar
 ### Démarrage
 
 ```bash
-# Construire les images
 docker compose build
 
-# Lancer l'application
 docker compose up
 ```
 
@@ -61,7 +61,7 @@ docker compose up
 - **Email** : `admin@local`
 - **Mot de passe** : `admin123`
 
-## ⚙️ Configuration
+## Configuration
 
 ### Variables d'environnement (.env)
 
@@ -90,59 +90,60 @@ SMTP_USE_TLS=true
 PUBLIC_FRONT_BASE_URL=http://localhost:3000
 ```
 
-## 📁 Structure du projet
+## Structure du projet
 
 ```
 ter-actes/
-├── api/                    # Backend FastAPI
+├── api/                        # Backend FastAPI
 │   ├── app/
-│   │   ├── main.py         # Point d'entrée API
-│   │   ├── auth.py         # Authentification JWT
-│   │   ├── config.py       # Configuration
-│   │   ├── database.py     # Connexion BDD
-│   │   ├── models.py       # Modèles SQLAlchemy
-│   │   ├── schemas.py      # Schémas Pydantic
-│   │   ├── routers_actes.py    # Routes publiques
-│   │   ├── routers_admin.py    # Routes admin
-│   │   ├── routers_refs.py     # Routes référentiels
-│   │   ├── pdf_utils.py    # Extraction PDF/OCR
-│   │   ├── email_utils.py  # Envoi e-mails
-│   │   └── utils.py        # Utilitaires
+│   │   ├── main.py             # Point d’entrée FastAPI
+│   │   ├── config.py           # Chargement des variables d’env
+│   │   ├── database.py         # Connexion PostgreSQL
+│   │   ├── auth.py             # Auth, JWT, mots de passe
+│   │   ├── models.py           # Modèles ORM
+│   │   ├── models_refs.py      # Modèles ORM référentiels
+│   │   ├── schemas.py          # Schémas Pydantic
+│   │   ├── routers_actes.py    # Endpoints publics /actes
+│   │   ├── routers_admin.py    # Endpoints admin /admin/*
+│   │   ├── routers_refs.py     # Endpoints référentiels
+│   │   ├── pdf_utils.py        # Extraction texte & OCR
+│   │   ├── email_utils.py      # Envoi d’e-mails
+│   │   └── utils.py            # Fonctions utilitaires
 │   ├── Dockerfile
 │   └── requirements.txt
 │
-├── web/                    # Frontend Next.js
+├── web/                            # Frontend Next.js
 │   └── src/
 │       ├── app/
-│       │   ├── page.tsx           # Page d'accueil (portail public)
-│       │   ├── acte/[id]/page.tsx # Détail d'un acte
-│       │   ├── admin/             # Back-office
-│       │   │   ├── (protected)/   # Pages protégées
-│       │   │   │   ├── page.tsx   # Tableau de bord
-│       │   │   │   ├── upload/    # Dépôt d'actes
-│       │   │   │   ├── users/     # Gestion utilisateurs
+│       │   ├── page.tsx            # Page publique
+│       │   ├── acte/[id]/page.tsx  # Page de visualisation
+│       │   ├── admin/              # Back-office admin/agent
+│       │   │   ├── (protected)/    # Pages protégées
+│       │   │   │   ├── page.tsx    # Tableau de bord
+│       │   │   │   ├── upload/     # Upload d'actes
+│       │   │   │   ├── users/      # Gestion utilisateurs
 │       │   │   │   └── audit-logs/ # Journal d'audit
-│       │   │   └── login/         # Connexion
-│       │   ├── api/session/       # Routes API Next.js
-│       │   └── styles/            # CSS
-│       └── components/            # Composants React
+│       │   │   └── login/          # Connexion
+│       │   ├── api/session/        # Routes API Next.js
+│       │   └── styles/             # CSS
+│       └── components/             # Composants React
 │           ├── PDFViewer.tsx
 │           ├── Toast.tsx
 │           ├── Skeleton.tsx
 │           └── AdvancedSearchPanel.tsx
 │
 ├── docker-compose.yml
-├── .env.example
+├── .env
 └── README.md
 ```
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Routes publiques
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| GET | `/actes` | Liste des actes (paginée, filtrable) |
+| GET | `/actes` | Liste des actes |
 | GET | `/actes/{id}` | Détail d'un acte |
 | GET | `/actes/{id}/pdf` | Télécharger le PDF |
 | GET | `/actes/search_fulltext` | Recherche plein texte |
@@ -170,7 +171,7 @@ ter-actes/
 | GET | `/admin/types` | Liste des types d'actes |
 | GET | `/admin/services` | Liste des services |
 
-## 🔒 Sécurité
+## Sécurité
 
 - **Authentification** : JWT avec cookies HttpOnly
 - **Rôles** : Admin (accès complet) / Agent (accès limité)
@@ -178,7 +179,7 @@ ter-actes/
 - **Validation** : Vérification MIME et signature des PDF uploadés
 - **Audit** : Traçabilité de toutes les actions sur les actes
 
-## 📝 Types d'actes supportés
+## Types d'actes supportés
 
 Les types d'actes sont configurables. Par défaut :
 - Arrêté
@@ -186,7 +187,7 @@ Les types d'actes sont configurables. Par défaut :
 - Décision
 - Autre
 
-## 🏢 Services
+## Services
 
 Les services émetteurs sont configurables. Par défaut :
 - Mairie
@@ -194,7 +195,7 @@ Les services émetteurs sont configurables. Par défaut :
 - Voirie
 - Urbanisme
 
-## 🐳 Commandes Docker utiles
+## Commandes Docker utiles
 
 ```bash
 # Lancer en arrière-plan
