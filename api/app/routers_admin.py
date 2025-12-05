@@ -96,7 +96,7 @@ def _parse_date(s: Optional[str]):
                 y = int(y_str)
             return datetime(year=y, month=m, day=d).date()
 
-        # Sinon on suppose un format ISO AAAA-MM-JJ (inputs HTML)
+        # Sinon on suppose un format ISO AAAA-MM-JJ
         return datetime.fromisoformat(s).date()
     except ValueError as e:
         raise ValueError(
@@ -188,7 +188,7 @@ def login(
         raise HTTPException(status_code=400, detail="Incorrect email or password")
 
     expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    # On encode aussi le rôle dans le token
+    # On encode le rôle dans le token
     token = create_access_token(
         {"sub": user.email, "role": user.role},
         expires_delta=expires,
@@ -301,10 +301,10 @@ async def admin_create_actes_bulk(
         raw_bytes = await pdf.read()
         pdf.file.seek(0)
 
-        # sauvegarder le PDF sur disque (validation incluse)
+        # sauvegarder le PDF sur disque
         path = await save_pdf_validated(settings.UPLOAD_DIR, pdf)
 
-        # fulltext pour recherche OCR
+        # génère le texte intégral : texte natif ou OCR
         fulltxt = extract_text_with_ocr_if_needed(raw_bytes)
 
         try:
@@ -424,11 +424,11 @@ async def create_acte_one_shot(
     - stocke tout en base
     """
 
-    # on lit les bytes AVANT le save disque (pour OCR)
+    # lire les bytes pour OCR
     raw_bytes = await pdf.read()
     pdf.file.seek(0)
 
-    # enregistre le PDF physiquement
+    # sauvegarder le PDF sur disque
     path = await save_pdf_validated(settings.UPLOAD_DIR, pdf)
 
     # génère le texte intégral : texte natif ou OCR

@@ -29,7 +29,6 @@ class ActeOut(ActeBase):
 
 
 class UserLogin(BaseModel):
-    # str pour accepter aussi les emails internes du style "admin@local"
     email: str
     password: str
 
@@ -50,7 +49,6 @@ AdminRoleType = Literal["admin", "agent"]
 
 class UserBase(BaseModel):
     id: int
-    # str (et pas EmailStr) pour éviter les erreurs 500 avec admin@local
     email: str
     role: RoleType
 
