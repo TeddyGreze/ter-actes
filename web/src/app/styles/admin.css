@@ -35,7 +35,7 @@ body{
   display: flex; flex-wrap:wrap;
   gap: 10px;
   align-items: center;
-  justify-content: flex-end; /* tout à droite */
+  justify-content: flex-end;
 }
 
 /* Boutons */
@@ -110,7 +110,7 @@ body{
 .pager-pill .count{ background:var(--brand-600); color:#fff; text-align:center; }
 .pager-pill button:focus-visible{ outline:2px solid var(--brand-600); outline-offset:2px; border-radius:6px; }
 
-/* ==== Tableau ADMIN ===================================================== */
+/* =================== Tableau ADMIN ================================ */
 .admin-table{
   margin-top:24px;
   background:#fff;
@@ -123,7 +123,7 @@ body{
 /* Nom | Publication | Type | Service | Actions */
 .t-row{
   display:grid;
-  grid-template-columns: 1fr 170px 170px 170px 200px; /* inchangé */
+  grid-template-columns: 1fr 170px 170px 170px 200px;
   gap:12px;
   align-items:center;
   padding:12px 16px;
@@ -186,7 +186,7 @@ body{
 
 .t-row:not(.t-head):hover{ background:#f9fafb; }
 
-/* ====================== Responsive ======================= */
+/* ==================== Responsive ===================== */
 @media (max-width: 900px){
   .admin-topbar{ flex-direction:column; align-items:stretch; }
   .admin-title{ text-align:left; margin-bottom:8px; }
@@ -199,7 +199,7 @@ body{
   .admin-actions {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr; /* 2 colonnes égales */
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
     justify-content: stretch;
   }
@@ -214,7 +214,7 @@ body{
   .t-head .t-cell:nth-child(4){ display:none; }
 }
 
-/* ================= Téléphone uniquement ================= */
+/* ============== Téléphone uniquement ============== */
 @media (max-width: 520px){
   .admin-filters{ grid-template-columns: 1fr; }
   .admin-actions {
@@ -288,7 +288,7 @@ body{
   line-height:1;
 }
 
-/* Boutons/inputs compatibles avec l’admin */
+/* Boutons/inputs */
 .raa-btn{
   height:40px; padding:0 16px; border:0; border-radius:8px;
   background:var(--brand); color:#fff; font-weight:700; cursor:pointer;
@@ -319,7 +319,6 @@ body{
   flex:1 1 auto;
   overflow:hidden;
 
-  /* fermé par défaut */
   max-width:0;
   max-height:0;
   opacity:0;
@@ -331,13 +330,12 @@ body{
     transform .22s ease;
 }
 .adv-inline-formwrap.is-open{
-  max-width:1000px;   /* large pour desktop */
-  max-height:200px;   /* suffisant pour mobile */
+  max-width:1000px;   
+  max-height:200px;  
   opacity:1;
   transform:translateY(0);
 }
 
-/* Formulaire interne */
 .adv-inline-form{
   display:flex;
   flex-wrap:nowrap;
@@ -380,14 +378,12 @@ body{
    Ajouts anti-flash pendant les recherches live
    ========================================================= */
 
-/* Effet "rafraîchissement doux" : on garde les lignes, juste un léger dim */
 .admin-table.refreshing{
   opacity: .65;
   transition: opacity .18s ease;
-  pointer-events: none; /* évite un clic pendant la maj */
+  pointer-events: none; 
 }
 
-/* petite fade-in pour le skeleton du tout premier chargement */
 .t-row[aria-hidden="true"]{
   animation: fadeIn .15s ease;
 }

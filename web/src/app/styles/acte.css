@@ -59,7 +59,6 @@ body{ background:var(--bg); color:var(--fg); }
   color:#334155;
 }
 
-/* Container de la visionneuse */
 .acte-viewer{
   margin-top: 8px;
   border: 1px solid var(--border);
@@ -93,9 +92,9 @@ body{ background:var(--bg); color:var(--fg); }
 /* Groupe des boutons : -  +  Télécharger  Envoyer par e-mail */
 .pdfactions{
   display:flex;
-  gap:8px;              /* même espace entre tous les boutons */
+  gap:8px;              
   align-items:center;
-  margin-left:auto;      /* les colle à droite de la barre */
+  margin-left:auto;      
 }
 
 .pdfbtn{

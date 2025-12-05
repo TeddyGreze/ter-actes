@@ -69,7 +69,7 @@
   border-color: #94a3b8;
 }
 
-/* Cartes (création + liste + édition) */
+/* Cartes */
 .users-card {
   background: #ffffff;
   border-radius: 14px;
@@ -149,7 +149,6 @@
 }
 
 /* Liste des utilisateurs */
-
 .users-table-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -203,7 +202,7 @@
   background: #e5f0ff;
 }
 
-/* Colonne ACTIONS collée au contenu */
+/* Colonne actions collée au contenu */
 .users-table th:last-child,
 .users-table td:last-child {
   width: 1%;
@@ -230,7 +229,6 @@
   color: #15803d;
 }
 
-/* (Ancien) select de rôle dans le tableau, laissé au cas où */
 .users-role-select {
   font-size: 0.85rem;
   padding: 4px 8px;
@@ -246,7 +244,6 @@
 }
 
 /* Colonne actions */
-
 .users-actions {
   text-align: right;
 }
@@ -344,7 +341,6 @@
 }
 
 /* Messages */
-
 .users-info {
   font-size: 0.9rem;
   color: #64748b;
@@ -376,7 +372,7 @@
 
 @media (min-width: 768px) {
   .audit-filters {
-    grid-template-columns: 2fr 1fr 1fr auto; /* email / action / id / bouton */
+    grid-template-columns: 2fr 1fr 1fr auto;
     align-items: end;
     column-gap: 24px;
   }
@@ -515,124 +511,94 @@
   .admin-users-page {
     padding: 20px 10px 32px;
   }
-
   .users-card {
     padding: 16px 14px;
   }
-
   .users-card-edit {
     max-width: 100%;
   }
-
   .users-title {
     font-size: 1.25rem;
     margin-bottom: 12px;
   }
-
   .users-backline {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
-
   .users-header-line {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
-
   .users-audit-link {
     width: 100%;
     text-align: center;
   }
-
-  /* Filtres liste utilisateurs : plein écran en colonne */
   .users-filters {
     grid-template-columns: 1fr;
   }
-
-  /* Tableau : taille texte + gestion des colonnes longues */
   .users-table {
     font-size: 0.8rem;
   }
-
   .users-table th,
   .users-table td {
     padding: 6px 8px;
   }
-
-  /* Masquer la colonne "Créé le" (4e colonne) sur mobile */
   .users-table th:nth-child(4),
   .users-table td:nth-child(4) {
     display: none;
   }
-
   .users-table td:nth-child(2) {
     white-space: normal;
     word-break: break-all;
   }
-
-  /* Boutons d'actions sur deux lignes */
   .users-actions-buttons {
     flex-wrap: wrap;
     justify-content: flex-start;
   }
-
   .users-edit-btn,
   .users-delete-btn {
     flex: 1 1 120px;
     text-align: center;
   }
-
-  /* Formulaire d'édition : actions en colonne sur mobile */
   .users-edit-actions {
     flex-wrap: wrap;
     justify-content: flex-start;
   }
-
   .users-edit-actions .users-cancel-btn,
   .users-edit-actions .btn-primary {
     flex: 1 1 140px;
     text-align: center;
   }
-
-  /* Journal d'audit : header + bouton export empilés */
   .audit-list-header {
     flex-direction: column;
     align-items: flex-start;
   }
-
   .audit-export-btn {
     width: 100%;
     text-align: center;
   }
-
   .audit-table {
     font-size: 0.8rem;
   }
-
   .audit-table th,
   .audit-table td {
     padding: 6px 8px;
   }
-
   .audit-table td:nth-child(2),
   .audit-table td:nth-child(5) {
     white-space: normal;
     word-break: break-word;
   }
-
-  /* Pagination centrée sur mobile */
   .audit-pagination {
     justify-content: center;
     text-align: center;
   }
-
   .audit-pagination-buttons {
     width: 100%;
     justify-content: center;
   }
-
   .audit-page-btn {
     flex: 0 0 auto;
   }
