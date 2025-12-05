@@ -6,7 +6,7 @@ import 'pdfjs-dist/web/pdf_viewer.css'
 import '../app/styles/acte.css'
 
 // ----------------------------------------------------
-// Worker pdf.js (obligatoire pour pdfjs-dist en browser)
+// Worker pdf.js 
 // ----------------------------------------------------
 async function ensureWorker() {
   if (typeof window === 'undefined') return
@@ -65,7 +65,7 @@ export default function PDFViewer({
 
   // Annuler un rendu en cours
   const cancelRender = () => { try { taskRef.current?.cancel() } catch {} ; taskRef.current = null }
-  // Détruire complètement le PDF courant
+  // Supprimer complètement le PDF courant
   const destroyPdf  = () => { try { pdfRef.current?.destroy() } catch {} ; pdfRef.current = null }
 
   // --------- Rendu d'UNE page sur le <canvas> ---------

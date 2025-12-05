@@ -77,7 +77,7 @@ export default function AdminUpload() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file]);
 
-  // ESC pour fermer la modale d’aperçu
+  // ESC pour fermer la fenêtre d’aperçu
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowPreview(false); };
     window.addEventListener('keydown', onKey);
@@ -200,7 +200,6 @@ export default function AdminUpload() {
     try {
       const fd = new FormData();
 
-      // champs texte simples
       fd.set('titre', form.titre);
 
       // valeurs finales type / service
@@ -231,7 +230,7 @@ export default function AdminUpload() {
 
       await res.json();
 
-      // succès => retour au tableau de bord avec paramètre pour le toast
+      // succès => retour au tableau de bord
       setSubmitting(false);
       router.push('/admin?created=1');
     } catch (err) {
@@ -434,7 +433,7 @@ export default function AdminUpload() {
         </div>
       </div>
 
-      {/* Modale d’aperçu PDF */}
+      {/* Aperçu PDF */}
       {showPreview && previewUrl && (
         <div
           onClick={() => setShowPreview(false)}

@@ -12,7 +12,7 @@ export async function POST() {
     maxAge: 0,
   });
 
-  // ✅ Supprime aussi le vrai JWT côté navigateur (même host: localhost)
+  // Supprime aussi le vrai JWT côté navigateur (même host: localhost)
   // Comme les cookies sont par "host" (pas par port), 3000 peut effacer celui posé par 8000.
   res.cookies.set('access_token', '', {
     path: '/',

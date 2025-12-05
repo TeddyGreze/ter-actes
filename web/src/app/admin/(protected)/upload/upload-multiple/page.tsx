@@ -121,7 +121,7 @@ export default function BulkUploadPage() {
               }
             }
 
-            // Service : pareil
+            // Service : si l'OCR trouve un service qui est dans la liste, on le sélectionne
             if (data.service_auto) {
               if (KNOWN_SERVICES.includes(data.service_auto)) {
                 row.service = data.service_auto
@@ -274,7 +274,7 @@ export default function BulkUploadPage() {
         return
       }
 
-      // Récupère éventuellement le nombre créé pour l’afficher dans le toast du dashboard
+      // Récupère le nombre créé pour l’afficher dans le toast du dashboard
       let count = rows.length
       try {
         const data = await res.json()
@@ -282,10 +282,9 @@ export default function BulkUploadPage() {
           count = data.count
         }
       } catch {
-        // pas grave, on garde rows.length
       }
 
-      // Redirection vers le dashboard qui affichera le toast global
+      // Redirection vers le tableau de bord qui affichera le toast global
       router.push(`/admin?bulk=${count}`)
     } catch (e) {
       console.error(e)
@@ -333,7 +332,7 @@ export default function BulkUploadPage() {
         )}
       </section>
 
-      {/* Étape 2 : vérification & publication */}
+      {/* Étape 2 : vérification et publication */}
       {rows.length > 0 && (
         <form className="admin-panel" onSubmit={handleSubmit}>
           <h2 className="panel-title">Vérification &amp; publication</h2>

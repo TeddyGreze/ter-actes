@@ -49,7 +49,7 @@ export default function EditActePage() {
   // pour pouvoir vider l’input file
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Modale d’aperçu (PDF actuel OU nouveau fichier)
+  // Aperçu (PDF actuel OU nouveau fichier)
   const [showPreview, setShowPreview] = useState(false);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
 
@@ -102,7 +102,7 @@ export default function EditActePage() {
     return () => URL.revokeObjectURL(url);
   }, [file, newFileUrl]);
 
-  // ESC pour fermer la modale
+  // Ferme l'aperçu avec la touche Échap
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowPreview(false); };
     window.addEventListener('keydown', onKey);
@@ -228,7 +228,7 @@ export default function EditActePage() {
             Modifier l’acte « {displayTitle} »
           </h1>
 
-          {/* Lien pour voir le PDF actuel (avec cache-buster) */}
+          {/* Lien pour voir le PDF actuel */}
           <p className="u-note" style={{ marginTop: -6, marginBottom: 10 }}>
             PDF actuel :{' '}
             <a
@@ -429,7 +429,7 @@ export default function EditActePage() {
         </div>
       </div>
 
-      {/* Modale d’aperçu (PDF actuel OU nouveau fichier) */}
+      {/* Prévisualisation du PDF (PDF actuel OU nouveau fichier) */}
       {showPreview && previewSrc && (
         <div
           onClick={() => setShowPreview(false)}

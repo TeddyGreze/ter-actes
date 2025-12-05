@@ -137,7 +137,7 @@ export default function AuditLogsPage() {
 
       setHasNext(hasNextFromApi)
 
-      // Met à jour le "hint" du nombre total de pages connu
+      // Met à jour le nombre total de pages connu
       setTotalPagesHint(prev =>
         hasNextFromApi
           ? Math.max(prev, pageToLoad + 1)

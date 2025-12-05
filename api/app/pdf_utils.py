@@ -36,7 +36,7 @@ def _preprocess_for_ocr(img: Image.Image) -> Image.Image:
     - on renvoie une image bien contrastée pour Tesseract
     """
     gray = img.convert("L")  # niveaux de gris
-    # seuillage bête : <160 -> noir, sinon blanc
+    # seuillage : <160 -> noir, sinon blanc
     bw = gray.point(lambda x: 0 if x < 160 else 255, "1")
     return bw
 
@@ -73,7 +73,7 @@ def extract_text_with_ocr_if_needed(data: bytes, min_len: int = 200) -> str:
 
     ocr_parts: List[str] = []
     try:
-        # dpi élevé pour améliorer la netteté du scan
+        # dpi 300 pour améliorer la netteté du scan
         images: List[Image.Image] = convert_from_bytes(data, dpi=300)
         for img in images:
             try:
@@ -198,10 +198,10 @@ def _extract_date_from_line(line: str) -> Optional[str]:
 
 def guess_date_from_text(text: str) -> Optional[str]:
     """
-    Objectif : choper la vraie date de signature/décision.
-    On évite de prendre une date random dans le corps du texte.
+    Objectif : récupérer la vraie date de signature/décision.
+    On évite de prendre une date aléatoire dans le corps du texte.
 
-    Stratégie de scoring :
+    Stratégie de score :
     - on découpe en lignes
     - pour chaque ligne qui contient AU MOINS une date, on calcule un score
       basé sur :
@@ -273,7 +273,6 @@ def guess_date_from_text(text: str) -> Optional[str]:
         return candidates[0][2]
 
     # Fallback global : première date rencontrée dans tout le texte
-    # (parfois utile si le doc est très court)
     global_first = _extract_date_from_line("\n".join(raw_lines))
     if global_first:
         return global_first
@@ -350,8 +349,8 @@ def guess_type_smart(text: str, known_types: List[str]) -> Optional[str]:
     Règles métier renforcées :
     - On regarde l'en-tête (début du doc) pour des mots comme
       "DELIBERATION", "ARRÊTÉ N°", "DECISION DU MAIRE", etc.
-    - On tolère les OCR moches (accents partis).
-    - On donne plus de poids aux premières ~15 lignes, car
+    - On tolère les OCR de mauvaise qualité (accents partis).
+    - On donne plus d'importance aux premières 15 lignes, car
       les actes officiels ont souvent le titre ultra clair tout en haut.
     """
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]

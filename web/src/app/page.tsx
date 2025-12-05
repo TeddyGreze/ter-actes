@@ -124,7 +124,7 @@ export default function HomePage() {
   // Boot (1er fetch)
   useEffect(() => { search(1) /* eslint-disable-next-line */ }, [])
 
-  // Live search (debounce) sur filtres “simples”
+  // Recherche automatique avec délai (debounce) au changement des filtres
   useEffect(() => {
     if (!hasDataOnce) return
     const t = setTimeout(() => search(1), 300)
@@ -255,7 +255,6 @@ export default function HomePage() {
   }, [displayItems, focusRow, toggleRow, openRow, downloadRow, selectAllDisplayed])
   const onHeadKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'ArrowDown') { e.preventDefault(); focusRow(0) } }
 
-  // Visibilités anti-flash
   const showEmpty = hasDataOnce && !loading && !refreshing && displayItems.length === 0
   const showPager = hasDataOnce && !loading && displayItems.length > 0
 
@@ -443,7 +442,7 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Pagination (affichée seulement quand des lignes sont rendues) */}
+      {/* Pagination */}
       {showPager && (
         <nav className="raa-pager-pill" aria-label="Pagination">
           <div className="raa-pill" role="group" aria-hidden={refreshing ? 'true' : 'false'}>

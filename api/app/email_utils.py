@@ -21,7 +21,7 @@ def send_acte_email(
     Lève RuntimeError en cas de problème (mauvaise config SMTP, erreur réseau, etc.).
     """
 
-    # Vérif basique de la config SMTP
+    # Vérification basique de la config SMTP
     if not settings.SMTP_HOST or not settings.SMTP_PORT:
         raise RuntimeError("Service e-mail non configuré (SMTP_HOST/SMTP_PORT manquants).")
 
@@ -80,5 +80,5 @@ Ceci est un message automatique, merci de ne pas répondre.
                 server.send_message(msg)
     except Exception as e:
         # On encapsule tout dans RuntimeError pour que le router
-        # puisse renvoyer une HTTPException propre
+        # puisse renvoyer une HTTPException
         raise RuntimeError(f"Erreur lors de l'envoi SMTP : {e}")

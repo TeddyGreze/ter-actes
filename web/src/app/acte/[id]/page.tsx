@@ -34,7 +34,7 @@ export default function ActePage() {
   const [acte, setActe] = useState<Acte | null>(null)
   const [showEmailModal, setShowEmailModal] = useState(false)
 
-  // Détermine la bonne cible du bouton “Retour”
+  // Détermine le lien de retour du bouton “Retour”
   const from = search.get('from')
   let backHref = '/'
   if (from === 'admin') backHref = '/admin'
@@ -108,7 +108,7 @@ export default function ActePage() {
         Astuce : Ctrl/Cmd + molette pour zoomer · molette aux bords pour changer de page.
       </p>
 
-      {/* Modale d’envoi par e-mail */}
+      {/* Formulaire d'envoi par email */}
       {showEmailModal && (
         <div
           className="acte-email-modal-backdrop"

@@ -48,7 +48,7 @@ export default function AdminDashboard() {
 
   // affichage
   const [loading, setLoading] = useState(true) // skeleton avant tout 1er rendu
-  const [refreshing, setRefreshing] = useState(false) // rechargements doux
+  const [refreshing, setRefreshing] = useState(false) // rechargements
   const [hasDataOnce, setHasDataOnce] = useState(false) // devient true après le 1er fetch réussi
 
   // Filtres
@@ -74,7 +74,6 @@ export default function AdminDashboard() {
   const bootedRef = useRef(false) // bloque l’auto-reload des filtres au boot
   const abortRef = useRef<AbortController | null>(null)
 
-  // ✅ évite les toasts en double (StrictMode)
   const flashHandledRef = useRef(false)
 
   useEffect(() => {
@@ -104,7 +103,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!search) return
 
-    // si on a déjà géré le flash pour cette montée, on ne refait rien
     if (flashHandledRef.current) return
 
     const created = search.get('created')
@@ -133,7 +131,6 @@ export default function AdminDashboard() {
       toast.success('Acte modifié')
     }
 
-    // Nettoie l’URL pour ne pas rejouer les toasts au rafraîchissement
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href)
       url.searchParams.delete('created')
@@ -309,7 +306,6 @@ export default function AdminDashboard() {
     }
   }
 
-  // visibilité contrôlée pour éviter tout flash
   const showEmpty = hasDataOnce && !loading && !refreshing && displayItems.length === 0
   const showPager = hasDataOnce && !loading && displayItems.length > 0
 

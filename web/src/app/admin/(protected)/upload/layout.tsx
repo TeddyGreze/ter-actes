@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 export default function AdminProtectedLayout({ children }: { children: React.ReactNode }) {
-  // Vérif côté serveur avant rendu
+  // Vérification côté serveur avant rendu
   const hasJwt = !!cookies().get('access_token')?.value;
   if (!hasJwt) redirect('/admin/login');
   return <>{children}</>;

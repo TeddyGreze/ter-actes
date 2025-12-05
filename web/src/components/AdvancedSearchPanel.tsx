@@ -5,7 +5,6 @@ import { useState } from 'react';
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
 type Props = {
-  // est-ce qu'un filtre avancé est actif ?
   advActive: boolean;
   // appliquer un filtre avancé (liste d'ids issus de /actes/search_fulltext)
   onApply: (term: string, ids: number[]) => void;
@@ -93,7 +92,7 @@ export default function AdvancedSearchPanel({ advActive, onApply, onReset }: Pro
           </button>
         )}
 
-        {/* Formulaire avancé, inline (desktop) ou en dessous (mobile) */}
+        {/* Champ de recherche avancé, inline (desktop) ou en dessous (mobile) */}
         <div
           className={
             'adv-inline-formwrap ' + (open ? 'is-open' : '')

@@ -31,7 +31,6 @@ async def save_pdf_validated(upload_dir: str, file: UploadFile) -> str:
     total = 0
 
     with open(dest_path, "wb") as out:
-        # Lire le premier chunk pour valider la signature %PDF-
         first = await file.read(1024)
         total += len(first)
         if not first.startswith(PDF_MAGIC):
